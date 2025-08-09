@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import fastapi_swagger_dark as fsd
 
 from backend.db.session import Base, engine, SessionLocal
 from backend.middlewares.cors import add_cors_middleware
@@ -13,18 +15,8 @@ from backend.services.auth import hash_password
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="CTF Backend")
-add_cors_middleware(app)
-
-app.include_router(auth_router)
-app.include_router(challenges_router)
-app.include_router(admin_router)
-app.include_router(ws_router)
-app.include_router(scoreboard_router)
-
-
-@app.on_event("startup")
-def ensure_admin_user():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     # SQLite backfills for added columns (best-effort, ignored if already exist)
     try:
         with engine.connect() as conn:
@@ -68,6 +60,18 @@ def ensure_admin_user():
             db.commit()
     finally:
         db.close()
+
+    yield
+
+app = FastAPI(title="CTF Backend", lifespan=lifespan, docs_url=None)
+add_cors_middleware(app)
+fsd.install(app)
+
+app.include_router(auth_router)
+app.include_router(challenges_router)
+app.include_router(admin_router)
+app.include_router(ws_router)
+app.include_router(scoreboard_router)
 
 
 @app.get("/")
