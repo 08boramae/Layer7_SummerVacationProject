@@ -25,12 +25,39 @@ app.include_router(scoreboard_router)
 
 @app.on_event("startup")
 def ensure_admin_user():
-    # Backfill Challenge.is_visible column for SQLite (no Alembic yet)
+    # SQLite backfills for added columns (best-effort, ignored if already exist)
     try:
         with engine.connect() as conn:
             conn.exec_driver_sql("ALTER TABLE challenges ADD COLUMN is_visible BOOLEAN NOT NULL DEFAULT 1")
     except Exception:
-        pass  # column likely exists
+        pass
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN is_visible BOOLEAN NOT NULL DEFAULT 1")
+    except Exception:
+        pass
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql("ALTER TABLE submissions ADD COLUMN awarded_points INTEGER")
+    except Exception:
+        pass
+    # scoring fields
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql("ALTER TABLE challenges ADD COLUMN scoring_type VARCHAR(16) NOT NULL DEFAULT 'static'")
+    except Exception:
+        pass
+    for coldef in [
+        "initial_value INTEGER",
+        "decay_function VARCHAR(16)",
+        "decay_value FLOAT",
+        "minimum_value INTEGER",
+    ]:
+        try:
+            with engine.connect() as conn:
+                conn.exec_driver_sql(f"ALTER TABLE challenges ADD COLUMN {coldef}")
+        except Exception:
+            pass
 
     db = SessionLocal()
     try:
