@@ -11,6 +11,7 @@ from backend.schemas.challenge import ChallengeOut
 from backend.schemas.submission import FlagSubmit
 from backend.services.auth import get_current_user, verify_password
 from backend.api.ws import broadcast_scoreboard
+from backend.utils.scoring import compute_challenge_value
 
 
 router = APIRouter(prefix="/challenges", tags=["challenges"])
@@ -22,11 +23,17 @@ def list_challenges(db: Session = Depends(get_db)):
     result = []
     for c in items:
         link: Optional[str] = f"/challenges/{c.id}/download" if c.file_path else None
+        # show current value (next solver reward) for dynamic; static shows points
+        if c.scoring_type == "dynamic":
+            solve_count = db.query(Submission).filter(Submission.challenge_id == c.id, Submission.is_correct.is_(True)).count()
+            display_points = compute_challenge_value(c, solve_count + 1)
+        else:
+            display_points = c.points
         result.append({
             "title": c.title,
             "content": c.content,
             "file": link,
-            "points": c.points,
+            "points": int(display_points),
             "field": c.field,
         })
     return result
@@ -51,7 +58,6 @@ async def submit_flag(challenge_id: int, body: FlagSubmit, db: Session = Depends
 
     submitted = body.flag.strip()
     if verify_password(submitted, c.flag_hash):
-        # Already solved?
         exists = db.query(Submission).filter(
             Submission.user_id == user.id,
             Submission.challenge_id == challenge_id,
@@ -59,19 +65,27 @@ async def submit_flag(challenge_id: int, body: FlagSubmit, db: Session = Depends
         ).first()
         if exists:
             return {"success": True, "message": "Already solved"}
-        # Record correct submission and update score
+
+        # Determine solve index and award points
+        correct_count = db.query(Submission).filter(
+            Submission.challenge_id == challenge_id,
+            Submission.is_correct.is_(True),
+        ).count()
+        solve_index = correct_count + 1  # 1-based order
+        awarded = compute_challenge_value(c, solve_index) if c.scoring_type == "dynamic" else int(c.points)
+
         db.add(Submission(
             user_id=user.id,
             challenge_id=challenge_id,
             is_correct=True,
             submitted_flag_preview=submitted[:32],
+            awarded_points=awarded,
         ))
-        user.score += c.points
+        user.score += awarded
         db.commit()
         await broadcast_scoreboard(db)
-        return {"success": True, "message": "Correct flag"}
+        return {"success": True, "message": "Correct flag", "awarded": awarded}
 
-    # Record incorrect attempt
     db.add(Submission(
         user_id=user.id,
         challenge_id=challenge_id,
