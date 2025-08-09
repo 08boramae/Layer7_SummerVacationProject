@@ -9,6 +9,7 @@ from backend.db.session import get_db
 from backend.models import Challenge, User, Submission
 from backend.services.auth import require_admin, hash_password
 from backend.api.ws import broadcast_challenges_update, broadcast_scoreboard
+from backend.utils.scoring import compute_challenge_value
 
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -18,9 +19,15 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 async def create_challenge(
     title: str = Form(...),
     content: str = Form(...),
-    points: int = Form(...),
+    points: int = Form(100),
     field: str = Form(...),
     flag: str = Form(...),
+    is_visible: bool = Form(True),
+    scoring_type: str = Form("static"),  # static | dynamic
+    initial_value: Optional[int] = Form(None),
+    decay_function: Optional[str] = Form(None),  # linear | logarithmic
+    decay_value: Optional[float] = Form(None),
+    minimum_value: Optional[int] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
 ):
@@ -43,6 +50,12 @@ async def create_challenge(
         field=field,
         flag_hash=hash_password(flag),
         file_path=file_path,
+        is_visible=is_visible,
+        scoring_type=scoring_type,
+        initial_value=initial_value,
+        decay_function=decay_function,
+        decay_value=decay_value,
+        minimum_value=minimum_value,
     )
     db.add(ch)
     db.commit()
@@ -69,27 +82,56 @@ def list_challenges_admin(db: Session = Depends(get_db)):
             Challenge.field,
             Challenge.points,
             Challenge.is_visible,
+            Challenge.scoring_type,
+            Challenge.initial_value,
+            Challenge.decay_function,
+            Challenge.decay_value,
+            Challenge.minimum_value,
             func.coalesce(subq.c.solves, 0).label("solves"),
         )
         .outerjoin(subq, subq.c.challenge_id == Challenge.id)
         .order_by(Challenge.id.asc())
         .all()
     )
-    return [
-        {
+    result = []
+    for r in rows:
+        # compute current display value for dynamic
+        current_value = r.points
+        if r.scoring_type == "dynamic":
+            dummy = Challenge(points=r.points, scoring_type=r.scoring_type, initial_value=r.initial_value, decay_function=r.decay_function, decay_value=r.decay_value, minimum_value=r.minimum_value)
+            current_value = compute_challenge_value(dummy, int(r.solves) + 1)
+        result.append({
             "id": r.id,
             "title": r.title,
             "field": r.field,
-            "points": r.points,
+            "points": int(current_value),
             "is_visible": r.is_visible,
+            "scoring_type": r.scoring_type,
+            "initial_value": r.initial_value,
+            "decay_function": r.decay_function,
+            "decay_value": r.decay_value,
+            "minimum_value": r.minimum_value,
             "solves": int(r.solves or 0),
-        }
-        for r in rows
-    ]
+        })
+    return result
 
 
 @router.patch("/challenges/{challenge_id}")
-async def update_challenge(challenge_id: int, title: Optional[str] = None, content: Optional[str] = None, points: Optional[int] = None, field: Optional[str] = None, flag: Optional[str] = None, is_visible: Optional[bool] = None, db: Session = Depends(get_db)):
+async def update_challenge(
+    challenge_id: int,
+    title: Optional[str] = None,
+    content: Optional[str] = None,
+    points: Optional[int] = None,
+    field: Optional[str] = None,
+    flag: Optional[str] = None,
+    is_visible: Optional[bool] = None,
+    scoring_type: Optional[str] = None,
+    initial_value: Optional[int] = None,
+    decay_function: Optional[str] = None,
+    decay_value: Optional[float] = None,
+    minimum_value: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
     ch = db.query(Challenge).filter(Challenge.id == challenge_id).first()
     if not ch:
         raise HTTPException(status_code=404, detail="Challenge not found")
@@ -108,6 +150,16 @@ async def update_challenge(challenge_id: int, title: Optional[str] = None, conte
         ch.flag_hash = hash_password(flag)
     if is_visible is not None:
         ch.is_visible = is_visible
+    if scoring_type is not None:
+        ch.scoring_type = scoring_type
+    if initial_value is not None:
+        ch.initial_value = initial_value
+    if decay_function is not None:
+        ch.decay_function = decay_function
+    if decay_value is not None:
+        ch.decay_value = decay_value
+    if minimum_value is not None:
+        ch.minimum_value = minimum_value
     db.commit()
 
     await broadcast_challenges_update({"event": "updated", "challenge_id": challenge_id})
@@ -125,86 +177,29 @@ async def delete_challenge(challenge_id: int, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
-@router.get("/submissions")
-def list_submissions(limit: int = 200, db: Session = Depends(get_db)):
-    rows = (
-        db.query(Submission)
-        .order_by(Submission.submitted_at.desc())
-        .limit(limit)
-        .all()
-    )
-    return [
-        {
-            "id": s.id,
-            "user_id": s.user_id,
-            "challenge_id": s.challenge_id,
-            "is_correct": s.is_correct,
-            "submitted_flag_preview": s.submitted_flag_preview,
-            "submitted_at": s.submitted_at.isoformat(),
-        }
-        for s in rows
-    ]
+@router.get("/users")
+def list_users(db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.id.asc()).all()
+    return [{"id": u.id, "username": u.username, "score": u.score, "is_admin": u.is_admin, "is_visible": u.is_visible} for u in users]
 
 
-@router.delete("/submissions")
-async def reset_submissions(user_id: Optional[int] = None, challenge_id: Optional[int] = None, db: Session = Depends(get_db)):
-    q = db.query(Submission)
-    if user_id is not None:
-        q = q.filter(Submission.user_id == user_id)
-    if challenge_id is not None:
-        q = q.filter(Submission.challenge_id == challenge_id)
-    deleted = q.delete(synchronize_session=False)
-
-    # Recalculate user scores affected
-    users = db.query(User).all()
-    for u in users:
-        total = (
-            db.query(func.coalesce(func.sum(Challenge.points), 0))
-            .join(Submission, Submission.challenge_id == Challenge.id)
-            .filter(Submission.user_id == u.id, Submission.is_correct.is_(True))
-            .scalar()
-        )
-        u.score = int(total or 0)
-    db.commit()
-
-    await broadcast_scoreboard(db)
-
-    return {"deleted": deleted}
-
-
-@router.post("/users")
-async def create_user(username: str = Form(...), password: str = Form(...), is_admin: bool = Form(False), db: Session = Depends(get_db)):
-    if db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=400, detail="Username already exists")
-    u = User(username=username, password_hash=hash_password(password), is_admin=is_admin)
-    db.add(u)
-    db.commit()
-    db.refresh(u)
-    return {"id": u.id}
-
-
-@router.delete("/users/{user_id}")
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
-    u = db.query(User).filter(User.id == user_id).first()
-    if not u:
+@router.patch("/users/{user_id}")
+async def update_user(
+    user_id: int,
+    is_admin: Optional[bool] = None,
+    is_visible: Optional[bool] = None,
+    new_password: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(u)
+    if is_admin is not None:
+        user.is_admin = is_admin
+    if is_visible is not None:
+        user.is_visible = is_visible
+    if new_password is not None and new_password.strip():
+        user.password_hash = hash_password(new_password)
     db.commit()
     await broadcast_scoreboard(db)
-    return {"ok": True}
-
-
-@router.post("/scoreboard/recalc")
-async def recalc_scoreboard(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    for u in users:
-        total = (
-            db.query(func.coalesce(func.sum(Challenge.points), 0))
-            .join(Submission, Submission.challenge_id == Challenge.id)
-            .filter(Submission.user_id == u.id, Submission.is_correct.is_(True))
-            .scalar()
-        )
-        u.score = int(total or 0)
-    db.commit()
-    await broadcast_scoreboard(db)
-    return {"ok": True} 
+    return {"id": user.id, "is_admin": user.is_admin, "is_visible": user.is_visible} 
