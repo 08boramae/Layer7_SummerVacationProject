@@ -15,6 +15,7 @@ class Submission(Base):
     challenge_id = Column(Integer, ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
     is_correct = Column(Boolean, default=False, nullable=False)
     submitted_flag_preview = Column(String(64), nullable=True)
+    awarded_points = Column(Integer, nullable=True)
     submitted_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User", back_populates="submissions")
