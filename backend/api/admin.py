@@ -12,8 +12,8 @@ from backend.api.ws import broadcast_challenges_update, broadcast_scoreboard
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
-
-@router.post("/challenges")
+# 챌린지 추가
+@router.post("/challenges/add")
 async def create_challenge(
     title: str = Form(...),
     content: str = Form(...),
@@ -58,6 +58,17 @@ async def create_challenge(
     })
 
     return {"id": ch.id}
+
+@router.delete("/challenges/{challenge_id}")
+async def delete_challenge(challenge_id: int, db: Session = Depends(get_db)):
+    challenge = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    db.delete(challenge)
+    db.commit()
+    return {"id": challenge_id}
+
+# TODO: Challenge 수정
 
 
 @router.get("/users")
