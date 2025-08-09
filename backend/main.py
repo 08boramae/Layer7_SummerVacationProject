@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+import fastapi_swagger_dark as fsd
 
 from backend.db.session import Base, engine, SessionLocal
 from backend.middlewares.cors import add_cors_middleware
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CTF Backend", lifespan=lifespan, docs_url=None)
 add_cors_middleware(app)
+fsd.install(app)
 
 app.include_router(auth_router)
 app.include_router(challenges_router)
