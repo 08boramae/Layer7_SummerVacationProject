@@ -18,7 +18,7 @@ router = APIRouter(prefix="/challenges", tags=["challenges"])
 
 @router.get("", response_model=List[ChallengeOut])
 def list_challenges(db: Session = Depends(get_db)):
-    items = db.query(Challenge).order_by(Challenge.points.desc()).all()
+    items = db.query(Challenge).filter(Challenge.is_visible.is_(True)).order_by(Challenge.points.desc()).all()
     result = []
     for c in items:
         link: Optional[str] = f"/challenges/{c.id}/download" if c.file_path else None
@@ -45,7 +45,7 @@ def download_file(challenge_id: int, db: Session = Depends(get_db), user=Depends
 
 @router.post("/{challenge_id}/submit")
 async def submit_flag(challenge_id: int, body: FlagSubmit, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    c = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+    c = db.query(Challenge).filter(Challenge.id == challenge_id, Challenge.is_visible.is_(True)).first()
     if not c:
         raise HTTPException(status_code=404, detail="Challenge not found")
 

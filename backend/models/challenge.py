@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, func, Boolean
 from sqlalchemy.orm import relationship
 
 from backend.db.session import Base
@@ -15,5 +15,6 @@ class Challenge(Base):
     field = Column(String(32), nullable=False)
     flag_hash = Column(String(128), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    is_visible = Column(Boolean, default=True, nullable=False)
 
     submissions = relationship("Submission", back_populates="challenge", cascade="all, delete-orphan") 

@@ -25,6 +25,13 @@ app.include_router(scoreboard_router)
 
 @app.on_event("startup")
 def ensure_admin_user():
+    # Backfill Challenge.is_visible column for SQLite (no Alembic yet)
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql("ALTER TABLE challenges ADD COLUMN is_visible BOOLEAN NOT NULL DEFAULT 1")
+    except Exception:
+        pass  # column likely exists
+
     db = SessionLocal()
     try:
         admin = db.query(User).filter(User.username == "admin").first()
