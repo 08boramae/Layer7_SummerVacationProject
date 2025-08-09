@@ -58,9 +58,10 @@ async def create_challenge(
 
 @router.get("/challenges")
 def list_challenges_admin(db: Session = Depends(get_db)):
-    subq = db.query(Submission.challenge_id, func.sum(func.cast(Submission.is_correct, Integer)).label("solves")).group_by(Submission.challenge_id).subquery()
-    # Use Integer import locally to avoid circular import at top
-    from sqlalchemy import Integer
+    subq = db.query(
+        Submission.challenge_id,
+        func.sum(cast(Submission.is_correct, Integer)).label("solves"),
+    ).group_by(Submission.challenge_id).subquery()
     rows = (
         db.query(
             Challenge.id,
