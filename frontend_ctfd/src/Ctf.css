@@ -1,0 +1,12 @@
+.ascii-art {
+  margin: 0;
+  font-family: monospace;
+  font-size: 14px;
+  white-space: pre;
+  text-align: center;
+
+  background: linear-gradient(to right, #eeff00, #ffaa00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent; 
+}
