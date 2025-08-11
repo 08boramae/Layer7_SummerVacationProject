@@ -9,6 +9,7 @@ from backend.db.session import get_db
 from backend.models import Challenge, User, Submission
 from backend.services.auth import require_admin, hash_password
 from backend.api.ws import broadcast_challenges_update, broadcast_scoreboard
+from backend.api.ws import broadcast_challenges_stats_update, broadcast_announcement
 from backend.utils.scoring import compute_challenge_value
 
 
@@ -65,6 +66,7 @@ async def create_challenge(
         "event": "created",
         "challenge": {"id": ch.id, "title": ch.title, "points": ch.points, "field": ch.field}
     })
+    await broadcast_challenges_stats_update(db)
 
     return {"id": ch.id}
 
@@ -163,6 +165,7 @@ async def update_challenge(
     db.commit()
 
     await broadcast_challenges_update({"event": "updated", "challenge_id": challenge_id})
+    await broadcast_challenges_stats_update(db)
     return {"ok": True}
 
 
@@ -174,6 +177,7 @@ async def delete_challenge(challenge_id: int, db: Session = Depends(get_db)):
     db.delete(ch)
     db.commit()
     await broadcast_challenges_update({"event": "deleted", "challenge_id": challenge_id})
+    await broadcast_challenges_stats_update(db)
     return {"ok": True}
 
 
@@ -202,4 +206,10 @@ async def update_user(
         user.password_hash = hash_password(new_password)
     db.commit()
     await broadcast_scoreboard(db)
-    return {"id": user.id, "is_admin": user.is_admin, "is_visible": user.is_visible} 
+    return {"id": user.id, "is_admin": user.is_admin, "is_visible": user.is_visible}
+
+
+@router.post("/announce")
+async def create_announcement(message: str = Form(...)):
+    await broadcast_announcement(message)
+    return {"ok": True} 
