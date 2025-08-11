@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.db.session import get_db
 from backend.models import User, Cheer
-from backend.services.auth import get_current_user, require_admin
+from backend.services.auth import get_current_user
 
 router = APIRouter(prefix="/cheer", tags=["cheer"])
 
@@ -32,15 +32,3 @@ def get_cheer_count(user_id: int, db: Session = Depends(get_db)):
     return {"user_id": user_id, "cheers": int(count)}
 
 
-@router.get("/admin/list", dependencies=[Depends(require_admin)])
-def list_cheers_admin(db: Session = Depends(get_db)):
-    rows = db.query(Cheer).order_by(Cheer.created_at.desc()).all()
-    return [
-        {
-            "id": c.id,
-            "sender_user_id": c.sender_user_id,
-            "receiver_user_id": c.receiver_user_id,
-            "created_at": c.created_at.isoformat(),
-        }
-        for c in rows
-    ]

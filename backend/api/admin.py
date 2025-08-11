@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.config import STORAGE_DIR
 from backend.db.session import get_db
-from backend.models import Challenge, User, Submission
+from backend.models import Challenge, User, Submission, Cheer
 from backend.services.auth import require_admin, hash_password
 from backend.api.ws import broadcast_challenges_update, broadcast_scoreboard
 from backend.api.ws import broadcast_challenges_stats_update, broadcast_announcement
@@ -213,3 +213,16 @@ async def update_user(
 async def create_announcement(message: str = Form(...)):
     await broadcast_announcement(message)
     return {"ok": True} 
+
+@router.get("/cheer/list", dependencies=[Depends(require_admin)])
+def list_cheers_admin(db: Session = Depends(get_db)):
+    rows = db.query(Cheer).order_by(Cheer.created_at.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "sender_user_id": c.sender_user_id,
+            "receiver_user_id": c.receiver_user_id,
+            "created_at": c.created_at.isoformat(),
+        }
+        for c in rows
+    ]
