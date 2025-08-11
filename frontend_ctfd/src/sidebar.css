@@ -1,0 +1,358 @@
+.Sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    background-color: #1a1b23;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #2d2e36;
+}
+
+.sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid #2d2e36;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-logo-icon {
+    width: 32px;
+    height: 32px;
+    background-color: #6366f1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.sidebar-logo-text {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sidebar-auth {
+    padding: 20px 12px;
+    border-bottom: 1px solid #2d2e36;
+}
+
+.main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background-color: #ffffff;
+    padding: 40px;
+}
+
+.welcome-content {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.welcome-content h1 {
+    font-size: 32px;
+    color: #1a1b23;
+    margin-bottom: 16px;
+}
+
+.welcome-content p {
+    font-size: 18px;
+    color: #6b7280;
+}
+
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 80px);
+}
+
+.auth-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e5e7eb;
+    width: 100%;
+    max-width: 450px;
+    overflow: hidden;
+}
+
+.auth-header {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+    position: relative;
+}
+
+.auth-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.main-auth-form {
+    padding: 30px;
+}
+
+.main-auth-form .form-group {
+    margin-bottom: 20px;
+}
+
+.main-auth-form .form-group label {
+    display: block;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.main-auth-form .form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    color: #374151;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.main-auth-form .form-group input:focus {
+    outline: none;
+    border-color: #6366f1;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.main-auth-form .form-group input::placeholder {
+    color: #9ca3af;
+}
+
+.main-auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 20px;
+}
+
+.main-auth-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+}
+
+.auth-switch {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.switch-btn {
+    background: none;
+    border: none;
+    color: #6366f1;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 4px;
+    text-decoration: underline;
+}
+
+.switch-btn:hover {
+    color: #5855eb;
+}
+
+.auth-section {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #2d2e36;
+}
+
+.auth-header h3 {
+    color: #ffffff;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+    background-color: #2d2e36;
+    color: #ffffff;
+}
+
+.auth-form {
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background-color: #2d2e36;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #6366f1;
+}
+
+.form-group input::placeholder {
+    color: #6b7280;
+}
+
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-top: 8px;
+}
+
+.auth-btn:hover {
+    background-color: #5855eb;
+}
+
+.sidebar-menu-item {
+    padding: 12px 16px;
+    margin: 4px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.sidebar-menu-item:hover {
+    background-color: #2d2e36;
+    color: #ffffff;
+}
+
+.sidebar-menu-item.active {
+    background-color: #6366f1;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.sidebar-menu-item.active:hover {
+    background-color: #6366f1;
+}
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #2d2e36;
+}
+
+.sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-profile-avatar {
+    width: 40px;
+    height: 40px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.sidebar-profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-profile-name {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.sidebar-profile-email {
+    color: #6b7280;
+    font-size: 12px;
+}
