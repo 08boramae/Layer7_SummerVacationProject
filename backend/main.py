@@ -8,6 +8,7 @@ from backend.api.challenges import router as challenges_router
 from backend.api.admin import router as admin_router
 from backend.api.ws import router as ws_router
 from backend.api.scoreboard import router as scoreboard_router
+from backend.api.cheer import router as cheer_router
 from backend.models import User
 from backend.services.auth import hash_password
 
@@ -49,6 +50,20 @@ async def lifespan(app: FastAPI):
                 conn.exec_driver_sql(f"ALTER TABLE challenges ADD COLUMN {coldef}")
         except Exception:
             pass
+    # cheers table (create if not exists)
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql(
+                "CREATE TABLE IF NOT EXISTS cheers (\n"
+                "id INTEGER PRIMARY KEY,\n"
+                "sender_user_id INTEGER NOT NULL,\n"
+                "receiver_user_id INTEGER NOT NULL,\n"
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,\n"
+                "UNIQUE(sender_user_id, receiver_user_id)\n"
+                ")"
+            )
+    except Exception:
+        pass
 
     db = SessionLocal()
     try:
@@ -70,7 +85,7 @@ app.include_router(challenges_router)
 app.include_router(admin_router)
 app.include_router(ws_router)
 app.include_router(scoreboard_router)
-
+app.include_router(cheer_router)
 
 @app.get("/")
 def root():
