@@ -11,6 +11,7 @@ from backend.schemas.challenge import ChallengeOut
 from backend.schemas.submission import FlagSubmit
 from backend.services.auth import get_current_user, verify_password
 from backend.api.ws import broadcast_scoreboard
+from backend.api.ws import broadcast_challenges_stats_update
 from backend.utils.scoring import compute_challenge_value
 
 
@@ -84,6 +85,7 @@ async def submit_flag(challenge_id: int, body: FlagSubmit, db: Session = Depends
         user.score += awarded
         db.commit()
         await broadcast_scoreboard(db)
+        await broadcast_challenges_stats_update(db)
         return {"success": True, "message": "Correct flag", "awarded": awarded}
 
     db.add(Submission(

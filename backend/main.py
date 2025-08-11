@@ -15,6 +15,7 @@ from backend.services.auth import hash_password
 
 Base.metadata.create_all(bind=engine)
 
+# COLD AND DARK, IGNITION
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # SQLite backfills for added columns (best-effort, ignored if already exist)
