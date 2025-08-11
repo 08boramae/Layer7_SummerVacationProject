@@ -104,6 +104,19 @@ def ensure_admin_user():
             conn.exec_driver_sql("ALTER TABLE users ADD COLUMN is_visible BOOLEAN NOT NULL DEFAULT 1")
     except Exception:
         pass
+    # user profile columns
+    for coldef in [
+        "display_name VARCHAR(64)",
+        "description TEXT",
+        "country VARCHAR(64)",
+        "affiliation VARCHAR(128)",
+        "avatar_url VARCHAR(512)",
+    ]:
+        try:
+            with engine.connect() as conn:
+                conn.exec_driver_sql(f"ALTER TABLE users ADD COLUMN {coldef}")
+        except Exception:
+            pass
     try:
         with engine.connect() as conn:
             conn.exec_driver_sql("ALTER TABLE submissions ADD COLUMN awarded_points INTEGER")
