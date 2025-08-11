@@ -1,3 +1,4 @@
+/* === Base === */
 body {
   background-color: #000;
   margin: 0;
@@ -26,9 +27,9 @@ h1.admin-panel:hover { color: crimson }
 .admin-panel {
   color: white;
   text-align: center;
-
 }
 
+/* === Gradients === */
 .rainbow {
   background: linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet);
   -webkit-background-clip: text;
@@ -40,7 +41,7 @@ h1.admin-panel:hover { color: crimson }
   color: transparent;
 }
 
-
+/* === ASCII blocks === */
 .ascii-pre {
   margin: 0 auto;
   width: fit-content;
@@ -48,21 +49,30 @@ h1.admin-panel:hover { color: crimson }
   line-height: 1.05;
   font-size: clamp(10px, 5.2vw, 22px);
 }
+
 .scoreboard-header,
 .challenges-header {
   margin: 0;
   overflow: hidden;
   text-align: center;
+  display: flex;             /* center container */
+  justify-content: center;   /* center content */
 }
+
 .scoreboard-ascii,
 .challenges-ascii {
   margin: 0;
   line-height: 1;
   display: block;
   font-size: clamp(10px, 6vw, 22px);
+  width: fit-content;        /* shrink to text width */
 }
 
+/* desktop/mobile ASCII toggle (CSS-only switch) */
+.desktop-ascii { display: inline; }
+.mobile-ascii  { display: none;  }
 
+/* === Nav === */
 .nav-row {
   display: flex;
   align-items: center;
@@ -80,7 +90,7 @@ h1.admin-panel:hover { color: crimson }
   font-size: clamp(14px, 3.8vw, 22px);
 }
 
-
+/* === Forms === */
 .form-card {
   background-color: grey;
   border-radius: 30px;
@@ -112,16 +122,16 @@ h1.admin-panel:hover { color: crimson }
   cursor: pointer;
 }
 
-
+/* === Images === */
 .responsive-img { max-width: 100%; height: auto; }
 
-
+/* === Scoreboard === */
 .scoreboard-wrap {
   color: #fff;
-  text-align: center;      
-  display: flex;           
-  flex-direction: column;  
-  align-items: center;     
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .rank {
   margin: .25rem 0;
@@ -134,10 +144,19 @@ h1.admin-panel:hover { color: crimson }
 .other-rank { color: #fff; }
 .more-btn { width: auto; display: inline-block; }
 
-.chart-wrap { width: 100%; margin: 0 auto; }
-.chart-container { max-width: 100%; }
+/* center the chart cleanly */
+.chart-wrap {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;             /* added */
+  justify-content: center;   /* added */
+}
+.chart-container {
+  max-width: 100%;
+  margin: 0 auto;            /* added */
+}
 
-
+/* === Challenges === */
 .challenge-block {
   font-family: "Playfair Display", serif;
   text-align: center;
@@ -168,6 +187,7 @@ h1.admin-panel:hover { color: crimson }
   width: 300px;
 }
 
+/* === Responsive === */
 @media (max-width: 768px) {
   pre { 
     margin: 0 auto; 
@@ -196,6 +216,11 @@ h1.admin-panel:hover { color: crimson }
     height: auto;
     display: block;
   }
+
+  /* switch to mobile ASCII on small screens */
+  .mobile-ascii  { display: inline; }
+  .desktop-ascii { display: none;  }
+
   .form-card {
     padding: 16px;
     border-radius: 20px;
@@ -219,6 +244,3 @@ h1.admin-panel:hover { color: crimson }
     font-size: clamp(3px, 1.6vw, 7px);
   }
 }
-
-
-
