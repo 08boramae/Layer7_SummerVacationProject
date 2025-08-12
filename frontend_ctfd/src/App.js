@@ -1,43 +1,8 @@
-import logo from './logo.svg';
-import Chart from 'react-apexcharts'
-import './App.css';
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE = 'http://127.0.0.1:8000';
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet"></link>
-
-function isAuthed() {
-  return !!localStorage.getItem('token');
-}
-
-function RequireAuth({ children }) {
-  if (!isAuthed()) return <Navigate to="/login" replace state={{ from: '/challenges' }} />;
-  return children;
-}
-
-const _t = localStorage.getItem('token');
-if (_t) axios.defaults.headers.common['Authorization'] = `Bearer ${_t}`;
-
-function parseJwt(t){
-  try{
-    const b = t.split('.')[1];
-    return JSON.parse(decodeURIComponent(atob(b).split('').map(c=>'%' + ('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-  }catch{ return null; }
-}
-function isAdmin(){
-  const t = localStorage.getItem('token');
-  if(!t) return false;
-  const p = parseJwt(t);
-  return !!p?.is_admin;
-}
-function RequireAdmin({ children }) {
-  if (!isAuthed()) return <Navigate to="/login" replace state={{ from: '/admin-panel' }} />;
-  if (!isAdmin())  return <Navigate to="/" replace />;
-  return children;
-}
+// App.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import Chart from "react-apexcharts";
+import axios from "axios";
 
 const _hehehe = `
 ██╗  ██╗███████╗██╗  ██╗███████╗██╗  ██╗███████╗██╗  ██╗███████╗
@@ -47,7 +12,7 @@ const _hehehe = `
 ██║  ██║███████╗██║  ██║███████╗██║  ██║███████╗██║  ██║███████╗
 ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝
 `
-const _main = `
+const _main_ascii = `
 ██╗      █████╗ ██╗   ██╗███████╗██████╗ ███████╗     ██████╗████████╗███████╗
 ██║     ██╔══██╗╚██╗ ██╔╝██╔════╝██╔══██╗╚════██║    ██╔════╝╚══██╔══╝██╔════╝
 ██║     ███████║ ╚████╔╝ █████╗  ██████╔╝    ██╔╝    ██║        ██║   █████╗  
@@ -70,7 +35,7 @@ const _main_mobile = `
 ╚██████╗   ██║   ██║     
  ╚═════╝   ╚═╝   ╚═╝     
 `
-const _login = `
+const _login_ascii = `
 ██╗      ██████╗  ██████╗ ██╗███╗   ██╗    ██████╗ ██╗     ███████╗ █████╗ ███████╗███████╗
 ██║     ██╔═══██╗██╔════╝ ██║████╗  ██║    ██╔══██╗██║     ██╔════╝██╔══██╗██╔════╝██╔════╝
 ██║     ██║   ██║██║  ███╗██║██╔██╗ ██║    ██████╔╝██║     █████╗  ███████║███████╗█████╗  
@@ -93,7 +58,7 @@ const _login_mobile = `
 ██║     ███████╗███████╗██║  ██║███████║███████╗
 ╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝
 `
-const _register = `
+const _register_ascii = `
 ██████╗ ███████╗ ██████╗ ██╗███████╗████████╗███████╗██████╗     ██████╗ ██╗     ███████╗ █████╗ ███████╗███████╗
 ██╔══██╗██╔════╝██╔════╝ ██║██╔════╝╚══██╔══╝██╔════╝██╔══██╗    ██╔══██╗██║     ██╔════╝██╔══██╗██╔════╝██╔════╝
 ██████╔╝█████╗  ██║  ███╗██║███████╗   ██║   █████╗  ██████╔╝    ██████╔╝██║     █████╗  ███████║███████╗█████╗  
@@ -163,633 +128,1077 @@ const _challenges_mobile = `
 ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝
 `
 
-function App() {
-  return (
-    <div>
-      <BrowserRouter>
-      <Routes>
-        <Route path='/' element={<Main des={{textAlign: "center", fontSize : "xx-large", color:"white", width: "1920px"}}/>}/>
-        <Route path='/login'element={<Login/>}/>
-        <Route path='/register'element={<Register/>}/>
-        <Route path='/scoreboard'element={<Scoreboard/>}/>
-        <Route path='/challenges'element={<RequireAuth><Challenges/></RequireAuth>}/>
-        <Route path='/admin-panel' element={<RequireAdmin><Admin/></RequireAdmin>} />
-        <Route path='*' element={<Wtf/>}/>
-      </Routes>
-      </BrowserRouter>
-    </div>
-  );
-}
+const API_BASE = "http://127.0.0.1:8000";
 
-function ChartTest() {
-  let [place, SetPlace] = useState(0);
-  let [username, SetUsername] = useState([]);
-  let [scores, setScores] = useState([]);
-  useEffect(()=> {
-    function fix() {
-      axios.get('http://localhost:8000/scoreboard')
-      .then(res => {
-        const data = res.data;
-        const sorted = data.sort((a, b) => b.score - a.score);
-        const names = sorted.map(users => users.username);
-        const scores = sorted.map(scores => scores.score);
-        SetUsername(names);
-        setScores(scores);
-      })
-      .catch(err => {});
-    };
-    const interval = setInterval(fix, 100)
-    return () => clearInterval(interval);
-  }, [])
+const api = axios.create({
+  baseURL: API_BASE,
+  headers: { Accept: "application/json" },
+});
 
-  const options = {
-    chart: { id: 'scoreboard', parentHeightOffset: 0 },
-    grid: { padding: { top: 0, right: 8, left: 8, bottom: 0 } },
-    dataLabels: { enabled: false },
-    legend: { show: false },
-    xaxis: {
-      categories: username,
-      labels: {
-        rotateAlways: false,
-        rotate: -30,
-        hideOverlappingLabels: true,
-        trim: true,
-        style: { colors: '#FFFFFF', fontSize: '14px' }
-      },
-      tickAmount: Math.min(username.length, 6)
-    },
-    yaxis: { labels: { style: { colors: '#FFFFFF', fontSize: '12px' } } },
-    title: { text: 'Scoreboard', offsetY: 0, style: { color: '#FFFFFF', fontSize: '20px' } },
-    colors: ['#FF0000'],
-    responsive: [
-      {
-        breakpoint: 768,
-        options: {
-          chart: { width: '100%', height: 280 },
-          xaxis: { labels: { style: { fontSize: '11px' } }, tickAmount: Math.min(username.length, 5) },
-          yaxis: { labels: { style: { fontSize: '11px' } } },
-          title: { style: { fontSize: '16px' } },
-          grid: { padding: { top: 0, right: 4, left: 4, bottom: 0 } }
-        }
-      }
-    ]
-  };
+api.interceptors.request.use((config) => {
+  const t = localStorage.getItem("token");
+  if (t) config.headers.Authorization = `Bearer ${t}`;
+  return config;
+});
 
-  const series = [{ name: 'swap', data: scores }];
-
-  return (
-    <div className="scoreboard-wrap">
-      <h1 className="rank rank-1">1등 : {username[0]} [{scores[0]}점] 🥇</h1>
-      <h1 className="rank rank-2">2등 : {username[1]} [{scores[1]}점] 🥈</h1>
-      <h1 className="rank rank-3">3등 : {username[2]} [{scores[2]}점] 🥉</h1>
-      {!place ? (
-        <h1 className='state-more more-btn' onClick={() => SetPlace(1)}>
-          [아래 순위 더보기]
-        </h1>
-      ) : null}
-      {place ? <UserState username={username} scores={scores}/> : null}
-      <div className="chart-container">
-        <Chart options={options} series={series} type="bar" width="1000" height="600" />
-      </div>
-    </div>
-  );
-}
-
-function UserState({username, scores}) {
-  return (
-    <div className="userstate-list">
-      {username.map(function(a,b) {
-        return (
-          <div key={b}>
-            {a !== username[0] && a !== username[1] && a !== username[2] ? (
-              <h1 className="rank other-rank">{b+1}등: {a} [{scores[b]}점]</h1>
-            ) : null}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function Register() {
-  return (
-    <div>
-      <pre className="ascii-pre center white">{window.innerWidth <= 768 ? _register_mobile : _register}</pre>
-      <div className="fullvh center-flex black-bg">
-        <form onSubmit={handleRegister} className="form-card">
-          <input name='username' placeholder='enter id' className="input-lg" />
-          <input name='password' placeholder='enter password' className="input-lg mt-60" />
-          <button type='submit' className="btn-lg mt-60">REGISTER</button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function Wtf() {
-  return (
-    <div className="center">
-      <h1 className="white playfair xlarge">Something Wrong....</h1>
-      <img className="responsive-img" src="https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200" />
-      <pre className="white">{_hehehe}</pre>
-    </div>
-  )
-}
-
-function Login() {
-  return (
-    <div>
-      <pre className="ascii-pre center white">{window.innerWidth <= 768 ? _login_mobile :_login}</pre>
-      <div className="fullvh center-flex black-bg">
-        <form onSubmit={handleLogin} className="form-card">
-          <input name='username' placeholder='enter id' className="input-lg" />
-          <input name='password' placeholder='enter password' className="input-lg mt-60" />
-          <button type='submit' className="btn-lg mt-60">LOGIN</button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function Scoreboard() {
-  return (
-    <div>
-      <div>
-        <pre className="scoreboard-header">
-          <h1 className='rainbow scoreboard-ascii'>
-            {window.innerWidth <= 768 ? _scoreboard_mobile : _scoreboard}
-          </h1>
-        </pre>
-        <div className="chart-wrap">
-          <ChartTest/>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Challenges() {
-  let [challenges, setChallenge] = useState([]);
-  let [show, setShow]= useState([0,0,0,0]);
-
-  function toggle(b) {
-    const tmp = [...show];
-    tmp[b] = tmp[b] ? 0 : 1;
-    setShow(tmp);
+function parseJwt(t) {
+  try {
+    const b = t.split(".")[1];
+    return JSON.parse(
+      decodeURIComponent(
+        atob(b)
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      )
+    );
+  } catch {
+    return null;
   }
-
-  const [test2, changeTest2] = useState(0);
-
-  useEffect(()=> {
-    async function loadAll() {
-      try {
-        const pub = await axios.get(`${API_BASE}/challenges`);
-        const data = Array.isArray(pub.data) ? pub.data : [];
-        const normalized = data.map(it => {
-          const cands = [it.id, it.challenge_id, it.challengeId, it.challengeID, it.cid, it.pk];
-          const found = cands.find(v => Number.isInteger(Number(v)) && Number(v) > 0);
-          return { ...it, __id: found ? Number(found) : null };
-        });
-        let solvedSet = new Set();
-        const t = localStorage.getItem('token');
-        if (t) {
-          try {
-            const res = await axios.get(`${API_BASE}/challenges/me/solves`, {
-              headers: { Authorization: `Bearer ${t}` }
-            });
-            (res.data || []).forEach(n => {
-              const idNum = Number(n);
-              if (Number.isInteger(idNum)) solvedSet.add(idNum);
-            });
-          } catch(_) {}
-        }
-        const merged = normalized.map(x => ({ ...x, __solved: solvedSet.has(Number(x.__id)) }));
-        setChallenge(merged);
-      } catch (e) {
-        setChallenge([]);
-      }
-    }
-    loadAll();
-  }, [test2]);
-
-  return (
-    <div>
-      <div>
-        <pre className="challenges-header">
-          <h1 className='rainbow2 challenges-ascii'>{window.innerWidth <= 768 ? _challenges_mobile : _challenges}</h1>
-        </pre>
-      </div>
-      <div className='challenges'>
-        {challenges ? challenges.map(function (a, b) {
-          if (challenges[b].field === "web") {
-            return (
-              <div key={b} className="challenge-block">
-                {challenges.findIndex(x => x.field === "web") === b ? (
-                  <div>
-                    <h1 className="white xxlarge">WEB</h1>
-                    <br/>
-                  </div>
-                ) : null}
-                <h1 className="white pointer" onClick={()=>{toggle(b);}}>[{challenges[b].title}]</h1>
-                {show[b] === 1 ? <Content challenges={challenges} b={b}/> : null}
-              </div>
-            );
-          } else if (challenges[b].field === "pwn") {
-            return (
-              <div key={b} className="challenge-block white">
-                {challenges.findIndex(x => x.field === "pwn") === b ? (
-                  <div>
-                    <br/>
-                    <hr className="w50"/>
-                    <br/>
-                    <h1 className="white">PWN</h1>
-                    <br/>
-                  </div>
-                ) : null}
-                <h1 className="white pointer" onClick={()=>{toggle(b);}}>[{challenges[b].title}]</h1>
-                {show[b] === 1 ? <Content challenges={challenges} b={b}/> : null}
-              </div>
-            );
-          } else if(challenges[b].field === "rev") {
-            return (
-              <div key={b} className="challenge-block white">
-                {challenges.findIndex(x => x.field === "rev") === b ? (
-                  <div>
-                    <br/>
-                    <hr className="w50"/>
-                    <br/>
-                    <h1 className="white">REV</h1>
-                    <br/>
-                  </div>
-                ) : null}
-                <h1 className="white pointer" onClick={()=>{toggle(b);}}>[{challenges[b].title}]</h1>
-                {show[b] === 1 ? <Content challenges={challenges} b={b}/> : null}
-              </div>
-            );
-          } else if(challenges[b].field === "misc") {
-            return (
-              <div key={b} className="challenge-block">
-                {challenges.findIndex(x => x.field === "misc") === b ? (
-                  <div>
-                    <br/>
-                    <hr className="w50"/>
-                    <br/>
-                    <h1 className="white">MISC</h1>
-                    <br/>
-                  </div>
-                ) : null}
-                <h1 className="white pointer" onClick={()=>{toggle(b);}}>[{challenges[b].title}]</h1>
-                {show[b] === 1 ? <Content challenges={challenges} b={b}/> : null}
-              </div>
-            );
-          }
-          return null;
-        }) : null}
-      </div>
-    </div>
-  )
 }
 
-function saveToken(token) {
-  if (!token) throw new Error('empty token');
-  localStorage.setItem('token', token);
-  axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+function isAuthed() {
+  return !!localStorage.getItem("token");
+}
+function isAdmin() {
+  const t = localStorage.getItem("token");
+  if (!t) return false;
+  const p = parseJwt(t);
+  return !!p?.is_admin;
 }
 
-const _existing = localStorage.getItem('token');
-if (_existing) {
-  axios.defaults.headers.common['Authorization'] = `Bearer ${_existing}`;
+function RequireAuth({ children }) {
+  if (!isAuthed()) return <Navigate to="/login" replace />;
+  return children;
+}
+function RequireAdmin({ children }) {
+  if (!isAuthed()) return <Navigate to="/login" replace />;
+  if (!isAdmin()) return <Navigate to="/" replace />;
+  return children;
 }
 
-function Content({challenges, b}) {
-  const [ok, setOk] = useState(null);
-  const ch = challenges[b];
-  const chId = Number(ch?.__id);
-  const initiallySolved = !!ch?.__solved;
+function useIsMobile(breakpoint = 768) {
+  const get = () => (typeof window !== "undefined" ? window.innerWidth <= breakpoint : false);
+  const [isMobile, setIsMobile] = useState(get());
 
   useEffect(() => {
-    if (initiallySolved) setOk(true);
-  }, [initiallySolved]);
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", handler);
+      else mq.removeListener(handler);
+    };
+  }, [breakpoint]);
 
-  async function onSubmit(e){
-    const success = await handleSubmitFlag(e);
-    if (success === true) {
-      setOk(true);
-      ch.__solved = true;
-    } else if (success === false) {
-      setOk(false);
-    }
-  }
-
-  const bgColor =
-    ok === null ? undefined :
-    ok === true ? 'aqua' : 'red';
-
-  return (
-    <div className='root'>
-      <div className="challenge-card" style={{ backgroundColor: bgColor }}>
-        <form data-challenge-id={chId} onSubmit={onSubmit}>
-          <br/>
-          <h1>{ch?.content}</h1>
-          <h1 className="link-like" onClick={()=> {window.location.href = (ch?.file)}}>{ch?.file}</h1>
-          <span className="flags-label">FLAGS :</span>
-          <input className="flag-input" name="flag" />
-        </form>
-      </div>
-    </div>
-  );
+  return isMobile;
 }
 
-function Main({des}) {
-  const navigate = useNavigate();
+const buttonStyles = {
+  padding: "12px 24px",
+  fontSize: "16px",
+  fontWeight: "600",
+  borderRadius: "8px",
+  border: "2px solid #555",
+  backgroundColor: "#222",
+  color: "#fff",
+  cursor: "pointer",
+  transition: "all 0.3s ease",
+  minWidth: "120px",
+};
+
+const inputStyles = {
+  padding: "12px 16px",
+  fontSize: "16px",
+  borderRadius: "8px",
+  border: "2px solid #555",
+  backgroundColor: "#222",
+  color: "#fff",
+  outline: "none",
+  transition: "border-color 0.3s ease",
+};
+
+function Main() {
+  const nav = useNavigate();
+  const isMobile = useIsMobile();
+
   return (
-    <div>
-      <div>
-        <pre className="ascii-pre center white">{window.innerWidth <= 768 ? _main_mobile : _main}</pre>
-      </div>
-      <div className="nav-row">
-        <h1 className='login nav-item' onClick={() => navigate('/login')}>[Login]</h1>
-        <h1 className='register nav-item' onClick={() => {navigate('/register')}}>[Register]</h1>
-        <h1 className='scoreboard nav-item' onClick={() => {navigate('/scoreboard')}}>[Scoreboard]</h1>
-        <h1 className='challenges nav-item' onClick={() => {navigate('/challenges')}}>[Challenges]</h1>
-        <h1 className='settings nav-item' onClick={() => {navigate('/settings')}}>[Settings]</h1>
+    <div style={{ color: "#fff", textAlign: "center", padding: 40 }}>
+      <pre style={{ color: "chartreuse", fontSize: "14px" }}>
+        {isMobile ? _main_mobile : _main_ascii}
+      </pre>
+      <div style={{ 
+        display: "flex", 
+        gap: 16, 
+        justifyContent: "center", 
+        marginTop: 20, 
+        flexWrap: "wrap" 
+      }}>
+        <button 
+          style={{...buttonStyles, borderColor: "#4CAF50"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#4CAF50"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/login")}
+        >
+          Login
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#2196F3"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#2196F3"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/register")}
+        >
+          Register
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#FF9800"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#FF9800"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/scoreboard")}
+        >
+          Scoreboard
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#E91E63"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#E91E63"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/challenges")}
+        >
+          Challenges
+        </button>
         {isAdmin() && (
-          <h1 className='admin-panel nav-item' onClick={() => {navigate('/admin-panel')}}>[Admin-Panel]</h1>
+          <button 
+            style={{...buttonStyles, borderColor: "#9C27B0"}} 
+            onMouseOver={(e) => e.target.style.backgroundColor = "#9C27B0"}
+            onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+            onClick={() => nav("/admin-panel")}
+          >
+            Admin Panel
+          </button>
         )}
       </div>
     </div>
   );
 }
 
-function buildFormData(o){
-  const fd = new FormData();
-  fd.append('title', o.title.trim());
-  fd.append('content', o.content.trim());
-  fd.append('field', o.field);
-  fd.append('flag', o.flag);
-  fd.append('is_visible', o.is_visible ? 'true' : 'false');
-  fd.append('scoring_type', o.scoring_type || 'static');
-  fd.append('initial_value', String(+o.initial_value || 100));
-  fd.append('minimum_value', String(+o.minimum_value || 100));
-  if (o.file && o.file.trim()) {
-    const v = o.file.trim();
-    if (/^https?:\/\//i.test(v)) {
-      fd.append('file_url', v);
-    } else if (o.fileObj instanceof File) {
-      fd.append('file', o.fileObj, o.fileObj.name);
-    }
-  }
-  if ((o.scoring_type || 'static') === 'dynamic') {
-    if (o.decay_function && o.decay_function.trim()) fd.append('decay_function', o.decay_function.trim());
-    if (o.decay_value !== '' && o.decay_value !== null && o.decay_value !== undefined) {
-      fd.append('decay_value', String(+o.decay_value));
-    }
-  }
-  return fd;
-}
-
-function Admin() {
-  const [list, setList] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [userEdits, setUserEdits] = useState({});
-  const [form, setForm] = useState({
-    title: "", content: "", field: "web", flag: "",
-    file: "", is_visible: true, scoring_type: "static",
-    initial_value: 100, minimum_value: 100, decay_function: "", decay_value: ""
-  });
-
-  useEffect(() => { load(); }, []);
-
-  async function load() {
-    const r = await axios.get(`${API_BASE}/admin/challenges`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    setList(r.data || []);
-    const u = await axios.get(`${API_BASE}/admin/users`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    setUsers(Array.isArray(u.data) ? u.data : []);
-  }
-
-  function setUE(id, patch){
-    setUserEdits(prev => ({ ...prev, [id]: { ...(prev[id]||{}), ...patch } }));
-  }
-
-  async function updateUser(id){
-    const body = {};
-    const e = userEdits[id] || {};
-    if (e.username && e.username.trim()) body.username = e.username.trim();
-    if (e.password && e.password.length > 0) body.password = e.password;
-    if (e.score !== undefined && e.score !== null && e.score !== '') body.score = Number(e.score);
-    if (Object.keys(body).length === 0) { alert('변경사항 없음'); return; }
-    try{
-      await axios.patch(`${API_BASE}/admin/users/${id}`, body, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type':'application/json' }
-      });
-      await load();
-      alert('user updated');
-      setUE(id, { username:'', password:'', score:'' });
-    }catch(err){
-      alert('update failed');
-    }
-  }
-
-  async function createChallenge(e){
+function Login() {
+  const isMobile = useIsMobile();
+  async function handleLogin(e) {
     e.preventDefault();
-    try{
-      const body = buildFormData(form);
-      await axios.post(`${API_BASE}/admin/challenges`, body, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setForm({ title:"", content:"", field:"web", flag:"", file:"", is_visible:true,
-                scoring_type:"static", initial_value:100, minimum_value:100,
-                decay_function:"", decay_value:"" });
-      await load();
-      alert('created');
-    }catch(err){
-      alert('create failed');
+    const f = e.currentTarget;
+    const username = f.username.value.trim();
+    const password = f.password.value;
+
+    try {
+      const { data } = await api.post("/auth/login", { username, password });
+      const tok = data.access_token || data.token || data?.accessToken;
+      if (!tok) throw new Error("no token");
+      localStorage.setItem("token", tok);
+      alert("로그인 성공");
+      window.location.href = "/";
+    } catch {
+      alert("로그인 실패");
     }
-  }
-
-  async function saveEdit(e){
-    e.preventDefault();
-    if(!editingId) return;
-    try{
-      const body = buildFormData(form);
-      await axios.patch(`${API_BASE}/admin/challenges/${editingId}`, body, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setEditingId(null);
-      await load();
-      alert('updated');
-    }catch(err){
-      alert('update failed');
-    }
-  }
-
-  function startEdit(ch){
-    setEditingId(ch.id);
-    setForm({
-      title: ch.title ?? "",
-      content: ch.content ?? "",
-      field: ch.field ?? "web",
-      flag: ch.flag ?? "",
-      file: ch.file ?? "",
-      is_visible: !!ch.is_visible,
-      scoring_type: ch.scoring_type ?? "static",
-      initial_value: ch.initial_value ?? 100,
-      minimum_value: ch.minimum_value ?? 100,
-      decay_function: ch.decay_function ?? "",
-      decay_value: ch.decay_value ?? ""
-    });
-  }
-
-  async function removeChallenge(id){
-    await axios.delete(`${API_BASE}/admin/challenges/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    await load();
   }
 
   return (
-    <div className='admin-panel'>
-      <h1>Admin Panel</h1>
-      <form className='admin-create-challenge' onSubmit={editingId ? saveEdit : createChallenge}>
-        <input placeholder='title' value={form.title} onChange={e=>setForm({...form, title:e.target.value})}/>
-        <input placeholder='content' value={form.content} onChange={e=>setForm({...form, content:e.target.value})}/>
-        <select value={form.field} onChange={e=>setForm({...form, field:e.target.value})}>
-          <option value="web">web</option>
-          <option value="pwn">pwn</option>
-          <option value="rev">rev</option>
-          <option value="misc">misc</option>
-        </select>
-        <input placeholder='flag' value={form.flag} onChange={e=>setForm({...form, flag:e.target.value})}/>
-        <input placeholder='file url' value={form.file} onChange={e=>setForm({...form, file:e.target.value})}/>
-        <select value={form.scoring_type} onChange={e=>setForm({...form, scoring_type:e.target.value})}>
-          <option value="static">static</option>
-          <option value="dynamic">dynamic</option>
-        </select>
-        <input type='number' placeholder='initial_value' value={form.initial_value} onChange={e=>setForm({...form, initial_value:e.target.value})}/>
-        <input type='number' placeholder='minimum_value' value={form.minimum_value} onChange={e=>setForm({...form, minimum_value:e.target.value})}/>
-        <input placeholder='decay_function' value={form.decay_function} onChange={e=>setForm({...form, decay_function:e.target.value})}/>
-        <input type='number' step='0.01' placeholder='decay_value' value={form.decay_value} onChange={e=>setForm({...form, decay_value:e.target.value})}/>
-        <button type='submit' style={{marginLeft:8}}>{editingId ? 'save' : 'create challenge'}</button>
-        {editingId ? <button type='button' onClick={()=>{setEditingId(null); setForm({ title:"", content:"", field:"web", flag:"", file:"", is_visible:true, scoring_type:"static", initial_value:100, minimum_value:100, decay_function:"", decay_value:"" });}} style={{marginLeft:8}}>cancel</button> : null}
+    <div style={{ color: "#fff", textAlign: "center", padding: 40 }}>
+      <pre style={{ color: "aqua", fontSize: "14px" }}>
+        {isMobile ? _login_mobile : _login_ascii}
+      </pre>
+      <form onSubmit={handleLogin} style={{ display: "inline-flex", flexDirection: "column", gap: 16 }}>
+        <input 
+          name="username" 
+          placeholder="Username" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#4CAF50"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <input 
+          name="password" 
+          placeholder="Password" 
+          type="password" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#4CAF50"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit" 
+          style={{...buttonStyles, borderColor: "#4CAF50", backgroundColor: "#4CAF50"}}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#45a049"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#4CAF50"}
+        >
+          LOGIN
+        </button>
       </form>
-      <hr/>
-      {list.map(ch => (
-        <div key={ch.id} style={{color:'#fff', marginBottom:12}}>
-          <b>#{ch.id}</b> [{ch.field}] {ch.title} {ch.is_visible ? '' : '(hidden)'}
-          <div style={{marginTop:6}}>
-            <button onClick={()=>startEdit(ch)}>edit</button>
-            <button onClick={()=>removeChallenge(ch.id)} style={{marginLeft:8}}>delete</button>
+    </div>
+  );
+}
+
+function Register() {
+  const isMobile = useIsMobile();
+  async function handleRegister(e) {
+    e.preventDefault();
+    const f = e.currentTarget;
+    const username = f.username.value.trim();
+    const password = f.password.value;
+
+    try {
+      const { data } = await api.post("/auth/register", { username, password });
+      const tok = data.access_token || data.token || data?.accessToken;
+      if (tok) localStorage.setItem("token", tok); 
+      alert("회원가입 성공");
+      window.location.href = "/login";
+    } catch {
+      alert("회원가입 실패");
+    }
+  }
+
+  return (
+    <div style={{ color: "#fff", textAlign: "center", padding: 40 }}>
+      <pre style={{ color: "yellow", fontSize: "14px" }}>
+        {isMobile ? _register_mobile : _register_ascii}
+      </pre>
+      <form onSubmit={handleRegister} style={{ display: "inline-flex", flexDirection: "column", gap: 16 }}>
+        <input 
+          name="username" 
+          placeholder="Username" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#2196F3"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <input 
+          name="password" 
+          placeholder="Password" 
+          type="password" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#2196F3"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit" 
+          style={{...buttonStyles, borderColor: "#2196F3", backgroundColor: "#2196F3"}}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#1976D2"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#2196F3"}
+        >
+          REGISTER
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function Scoreboard() {
+  const isMobile = useIsMobile();
+  const [rows, setRows] = useState([]);
+  const [names, scores] = useMemo(
+    () => [rows.map((r) => r.username), rows.map((r) => r.score)],
+    [rows]
+  );
+
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      try {
+        const { data } = await api.get("/scoreboard");
+        const sorted = Array.isArray(data) ? [...data].sort((a, b) => b.score - a.score) : [];
+        if (alive) setRows(sorted);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, 3000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+
+  const options = {
+    chart: { id: "scoreboard", parentHeightOffset: 0 },
+    grid: { padding: { top: 0, right: 8, left: 8, bottom: 0 } },
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    xaxis: {
+      categories: names,
+      labels: { rotate: -30, style: { colors: "#FFFFFF", fontSize: isMobile ? "10px" : "12px" } },
+      tickAmount: Math.min(names.length, isMobile ? 5 : 8)
+    },
+    yaxis: { labels: { style: { colors: "#FFFFFF", fontSize: isMobile ? "10px" : "12px" } } },
+    title: { text: "Scoreboard", style: { color: "#FFFFFF", fontSize: isMobile ? "16px" : "20px" } },
+    tooltip: { theme: "dark" }
+  };
+  const series = [{ name: "score", data: scores }];
+
+  return (
+    <div style={{ color: "#fff", textAlign: "center", padding: 20 }}>
+      
+      <pre className="scoreboard-header" style={{ display: "flex", justifyContent: "center" }}>
+        <span className="rainbow scoreboard-ascii" style={{ whiteSpace: "pre" }}>
+          {isMobile ? _scoreboard_mobile : _scoreboard}
+        </span>
+      </pre>
+
+      <div className="scoreboard-wrap" style={{marginBottom: 30}}>
+        <h1 style={{color: "#FFD700", fontSize: "24px", margin: "10px 0"}}>
+          {rows[0] ? <>🥇 1등: {rows[0].username} [{rows[0].score}점]</> : "데이터 없음"}
+        </h1>
+        <h1 style={{color: "#C0C0C0", fontSize: "20px", margin: "8px 0"}}>
+          {rows[1] ? <>🥈 2등: {rows[1].username} [{rows[1].score}점]</> : null}
+        </h1>
+        <h1 style={{color: "#CD7F32", fontSize: "18px", margin: "6px 0"}}>
+          {rows[2] ? <>🥉 3등: {rows[2].username} [{rows[2].score}점]</> : null}
+        </h1>
+      </div>
+
+      {/* 4등 이후 전체 순위 표시 */}
+      {rows.length > 3 && (
+        <div style={{marginBottom: 30}}>
+          <h3 style={{color: "#888", marginBottom: 15}}>전체 순위</h3>
+          <div style={{
+            display: "grid", 
+            gap: "8px", 
+            maxWidth: "600px", 
+            margin: "0 auto",
+            textAlign: "left"
+          }}>
+            {rows.map((user, index) => (
+              <div key={user.username || index} style={{
+                padding: "10px 15px",
+                backgroundColor: index < 3 ? "#333" : "#222",
+                borderRadius: "6px",
+                border: index < 3 ? "2px solid #555" : "1px solid #444",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <span style={{fontWeight: index < 3 ? "bold" : "normal"}}>
+                  {index + 1}등. {user.username}
+                </span>
+                <span style={{color: "#4CAF50", fontWeight: "bold"}}>
+                  {user.score}점
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      ))}
-      <hr/>
-      <h2 style={{color:'#fff'}}>User Management</h2>
-      <div style={{color:'#fff', marginTop:8}}>
-        {users.map(u => {
-          const e = userEdits[u.id] || {};
-          return (
-            <div key={u.id} style={{border:'1px solid #555', borderRadius:8, padding:8, marginBottom:10}}>
-              <div><b>#{u.id}</b> {u.username} {u.is_admin ? '(admin)' : ''}</div>
-              <div>score: {u.score}</div>
-              <div style={{marginTop:6, display:'flex', gap:8, flexWrap:'wrap'}}>
-                <input placeholder='new username'
-                       value={e.username||''}
-                       onChange={ev=>setUE(u.id, {username: ev.target.value})}/>
-                <input placeholder='new password'
-                       type='password'
-                       value={e.password||''}
-                       onChange={ev=>setUE(u.id, {password: ev.target.value})}/>
-                <input type='number' placeholder='set score'
-                       value={e.score??''}
-                       onChange={ev=>setUE(u.id, {score: ev.target.value})}/>
-                <button onClick={()=>updateUser(u.id)}>save</button>
-              </div>
-            </div>
-          );
-        })}
+      )}
+
+      {/* 차트 정확히 가운데 */}
+      <div className="chart-wrap" style={{ display: "flex", justifyContent: "center" }}>
+        <div className="chart-container" style={{ width: "100%", maxWidth: 1000 }}>
+          <Chart
+            options={options}
+            series={series}
+            type="bar"
+            width="100%"               // 컨테이너 기준 100%
+            height={isMobile ? 280 : 480}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-async function handleLogin(e){
-  e.preventDefault();
-  const form = e.target;
-  const username = form.querySelector("input[name='username']").value.trim();
-  const password = form.querySelector("input[name='password']").value;
+function Challenges() {
+  const isMobile = useIsMobile();
+  const [list, setList] = useState([]);
+  const [openStates, setOpenStates] = useState({}); // 개별 상태 관리
 
-  try {
-    const body = new URLSearchParams();
-    body.append('username', username);
-    body.append('password', password);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/challenges");
+        if (!alive) return;
+        // 백엔드 응답에 맞게 ID 추출 - title을 기준으로 고유 키 생성
+        const normalized = Array.isArray(data)
+          ? data.map((it, idx) => ({
+              ...it,
+              __uniqueId: it.title + "_" + idx, // title + index로 고유 키 생성
+            }))
+          : [];
+        setList(normalized);
+      } catch {
+        setList([]);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
-    const res = await axios.post(
-      `${API_BASE}/auth/token`,
-      body,
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' }, timeout: 8000 }
-    );
-
-    const token = res?.data?.access_token;
-    saveToken(token);
-    alert('로그인 성공');
-    window.location.href='/';
-  } catch (err) {
-    alert('로그인 실패');
+  function toggleDetail(uniqueId) {
+    setOpenStates(prev => ({
+      ...prev,
+      [uniqueId]: !prev[uniqueId]
+    }));
   }
+
+  return (
+    <div style={{ color: "#fff", padding: 20 }}>
+      
+      <pre className="challenges-header" style={{ display: "flex", justifyContent: "center" }}>
+        <span className="rainbow2 challenges-ascii" style={{ whiteSpace: "pre" }}>
+          {isMobile ? _challenges_mobile : _challenges}
+        </span>
+      </pre>
+
+      
+      <div
+        style={{
+          display: "grid",
+          gap: 16,
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(350px, 1fr))",
+          maxWidth: "1200px",
+          margin: "0 auto"
+        }}
+      >
+        {list.map((ch) => (
+          <div
+            key={ch.__uniqueId}
+            style={{
+              border: "2px solid #555",
+              borderRadius: 12,
+              padding: 16,
+              backgroundColor: "#111",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.3)"
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 12
+              }}
+            >
+              <div>
+                <div style={{fontSize: "18px", fontWeight: "bold", color: "#4CAF50"}}>
+                  {ch.title}
+                </div>
+                <div style={{fontSize: "14px", color: "#888", marginTop: 4}}>
+                  [{ch.field}] • {ch.points}점
+                </div>
+              </div>
+              <button
+                onClick={() => toggleDetail(ch.__uniqueId)}
+                style={{
+                  ...buttonStyles,
+                  borderColor: "#FF9800",
+                  minWidth: "100px",
+                  fontSize: "14px",
+                  padding: "8px 16px"
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = "#FF9800"}
+                onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+              >
+                {openStates[ch.__uniqueId] ? "Hide" : "Detail"}
+              </button>
+            </div>
+            {openStates[ch.__uniqueId] && <ChallengeCard ch={ch} />}
+            {console.log(ch)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-async function handleRegister(e){
-  e.preventDefault();
-  const form = e.target;
-  const username = form.querySelector("input[name='username']").value;
-  const password = form.querySelector("input[name='password']").value;
-  try {
-    const res = await axios.post(
-      `${API_BASE}/auth/register`,
-      { username, password },
-      { headers: { 'Content-Type': 'application/json' } }
-    );
-    localStorage.setItem('token', res.data.access_token);
-    alert('회원가입 성공');
-    window.location.href='/login';
-  } catch (err) {
-    alert('회원가입 실패');
+function ChallengeCard({ ch }) {
+  const [msg, setMsg] = useState("");
+  const [lastSubmission, setLastSubmission] = useState({ challengeId: null, flag: null });
+
+  async function handleSubmitFlag(e) {
+    e.preventDefault();
+    const flag = e.currentTarget.flag.value.trim();
+    if (!flag) {
+      setMsg("플래그를 입력해주세요");
+      return;
+    }
+
+    let challengeId = ch?.id;
+
+    // 같은 문제 + 같은 플래그 중복 제출 방지
+    if (lastSubmission.challengeId === challengeId && lastSubmission.flag === flag) {
+      setMsg("이미 제출함");
+      return;
+    }
+
+    if (!challengeId) {
+      try {
+        const { data: publicList } = await api.get("/challenges");
+        const matched = publicList.find(c => c.title === ch.title);
+        if (matched) {
+          const { data: adminList } = await api.get("/admin/challenges", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          const adminMatched = adminList.find(a => a.title === ch.title);
+          if (adminMatched) challengeId = adminMatched.id;
+        }
+      } catch {
+        setMsg("Challenge ID를 찾을 수 없습니다");
+        return;
+      }
+    }
+
+    if (!challengeId) {
+      setMsg("Challenge ID를 찾을 수 없습니다");
+      return;
+    }
+
+    try {
+      const { data } = await api.post(`/challenges/${challengeId}/submit`, { flag });
+      console.log(data);
+      setMsg(data?.message || "제출됨");
+
+      setLastSubmission({ challengeId, flag });
+
+      if (data?.success) e.currentTarget.flag.value = "";
+    } catch (err) {
+    const s = err?.response?.status;
+    const errMsg = err?.response?.data?.detail || err?.message || "";
+
+    if (errMsg.includes("UNIQUE constraint failed")) {
+      setMsg("이미 제출함");
+    }
+    
+    else if (s === 400 || s === 422) {
+      setMsg("틀린 플래그입니다");
+    }
+    
+    else if (s === 404) {
+      setMsg("문제를 찾을 수 없습니다");
+    }
+    
+    else if (s === 401) {
+      setMsg("로그인이 필요합니다");
+    }
+    
+    else {
+      setMsg(errMsg || "제출 실패");
+    }
+
+      // 실패 시에도 마지막 시도 기록
+      setLastSubmission({ challengeId, flag });
+    }
   }
+
+
+
+  async function handleDownload() {
+    let challengeId = null;
+    
+    if (ch.id) {
+      challengeId = ch.id;
+    } else {
+      try {
+        const { data: allChallenges } = await api.get("/admin/challenges");
+        const matchedChallenge = allChallenges.find(c => c.title === ch.title);
+        if (matchedChallenge) {
+          challengeId = matchedChallenge.id;
+        }
+      } catch {
+        alert("Challenge ID를 찾을 수 없습니다");
+        return;
+      }
+    }
+
+    if (!challengeId) {
+      alert("Challenge ID를 찾을 수 없습니다");
+      return;
+    }
+
+    try {
+      const res = await api.get(`/challenges/${challengeId}/download`, { responseType: "blob" });
+      const blob = new Blob([res.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = (ch.title || "challenge") + ".bin";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("다운로드 실패 (로그인 필요하거나 파일 없음)");
+    }
+  }
+
+  return (
+    <div style={{ 
+      marginTop: 15, 
+      padding: 15, 
+      backgroundColor: "#222", 
+      borderRadius: 8,
+      border: "1px solid #444"
+    }}>
+      <div style={{ 
+        marginBottom: 15, 
+        lineHeight: 1.6,
+        color: "#ccc",
+        whiteSpace: "pre-wrap"
+      }}>
+        {ch.content}
+      </div>
+      
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 15 }}>
+        <button 
+          onClick={handleDownload}
+          style={{
+            ...buttonStyles,
+            borderColor: "#2196F3",
+            fontSize: "14px",
+            padding: "8px 16px",
+            minWidth: "auto"
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#2196F3"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+        >
+          📁 파일 다운로드
+        </button>
+        {ch.file && /^https?:\/\//i.test(ch.file) && (
+          <a 
+            href={ch.file} 
+            target="_blank" 
+            rel="noreferrer"
+            style={{
+              color: "#4CAF50",
+              textDecoration: "none",
+              padding: "8px 16px",
+              border: "1px solid #4CAF50",
+              borderRadius: "6px",
+              fontSize: "14px"
+            }}
+          >
+            🔗 외부 파일 링크
+          </a>
+        )}
+      </div>
+      
+      <form onSubmit={handleSubmitFlag} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <input 
+          name="flag" 
+          placeholder="codegate2025{...}" 
+          style={{
+            ...inputStyles,
+            flex: 1,
+            fontSize: "14px",
+            padding: "10px 14px"
+          }}
+          onFocus={(e) => e.target.style.borderColor = "#E91E63"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit"
+          style={{
+            ...buttonStyles,
+            borderColor: "#E91E63",
+            backgroundColor: "#E91E63",
+            fontSize: "14px",
+            padding: "10px 20px",
+            minWidth: "auto"
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#C2185B"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#E91E63"}
+        >
+          Submit
+        </button>
+      </form>
+      
+      {msg && (
+        <div style={{ 
+          marginTop: 12, 
+          padding: "8px 12px",
+          backgroundColor: msg.includes("성공") || msg.includes("Correct") ? "#4CAF50" : "#f44336",
+          borderRadius: 6,
+          fontSize: "14px"
+        }}>
+          {msg}
+        </div>
+      )}
+    </div>
+  );
 }
 
-async function handleSubmitFlag(e){
-  e.preventDefault();
-  const token = localStorage.getItem('token');
-  if(!token){
-    alert('먼저 로그인하세요');
-    return false;
+function AdminPanel() {
+  const [users, setUsers] = useState([]);
+  const [challenges, setChallenges] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    field: "web",
+    flag: "",
+    points: 100,
+    is_visible: true,
+    scoring_type: "static",
+    initial_value: "",
+    decay_function: "",
+    decay_value: "",
+    minimum_value: "",
+    fileObj: null
+  });
+
+  const [edit, setEdit] = useState({});
+  const setUE = (id, patch) => setEdit(p => ({ ...p, [id]: { ...(p[id]||{}), ...patch } }));
+
+  async function loadUsers() {
+    try {
+      const { data } = await api.get("/admin/users");
+      setUsers(Array.isArray(data) ? data : []);
+    } catch {
+      setUsers([]);
+    }
   }
 
-  const challengeId = Number(e.currentTarget.dataset.challengeId);
-  const flag = e.currentTarget.querySelector('.flag-input').value;
-
-  if(!Number.isInteger(challengeId) || challengeId <= 0){
-    alert('문제 ID를 찾을 수 없습니다');
-    return false;
+  async function loadChallenges() {
+    try {
+      const { data } = await api.get("/admin/challenges");
+      setChallenges(Array.isArray(data) ? data : []);
+    } catch {
+      setChallenges([]);
+    }
   }
 
-  try{
-    const res = await axios.post(`${API_BASE}/challenges/${challengeId}/submit`, { flag }, {
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type':'application/json' }
-    });
-    alert(res.data.message || '제출됨');
-    return true;
-  }catch(err){
-    if (err?.response?.status === 404) alert(`문제 #${challengeId} 를 찾을 수 없습니다`);
-    else if (err?.response?.status === 401) alert('로그인이 필요합니다');
-    else alert('제출 실패');
-    return false;
+  useEffect(() => {
+    loadUsers();
+    loadChallenges();
+  }, []);
+
+  async function createChallenge(e) {
+    e.preventDefault();
+
+    const fd = new FormData();
+    fd.append("title", form.title.trim());
+    fd.append("content", form.content.trim());
+    fd.append("points", String(form.points ?? 100));
+    fd.append("field", form.field);
+    fd.append("flag", form.flag);
+    fd.append("is_visible", form.is_visible ? "true" : "false");
+    fd.append("scoring_type", form.scoring_type || "static"); 
+
+    if (form.initial_value !== "" && form.initial_value != null)
+      fd.append("initial_value", String(form.initial_value));
+    if (form.decay_function)
+      fd.append("decay_function", form.decay_function); 
+    if (form.decay_value !== "" && form.decay_value != null)
+      fd.append("decay_value", String(form.decay_value));
+    if (form.minimum_value !== "" && form.minimum_value != null)
+      fd.append("minimum_value", String(form.minimum_value));
+
+    if (form.fileObj instanceof File) {
+      fd.append("file", form.fileObj, form.fileObj.name);
+    }
+
+    try {
+      await api.post("/admin/challenges", fd, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      alert("Challenge created");
+      setForm({
+        title: "",
+        content: "",
+        field: "web",
+        flag: "",
+        points: 100,
+        is_visible: true,
+        scoring_type: "static",
+        initial_value: "",
+        decay_function: "",
+        decay_value: "",
+        minimum_value: "",
+        fileObj: null
+      });
+      loadChallenges();
+    } catch (err) {
+      console.error(err?.response?.data || err);
+      alert("Create failed: " + (err?.response?.data?.detail || "Unknown error"));
+    }
   }
+
+  async function updateUser(id) {
+    const e = edit[id] || {};
+    const params = {};
+    if (typeof e.is_admin === "boolean") params.is_admin = e.is_admin;
+    if (typeof e.is_visible === "boolean") params.is_visible = e.is_visible;
+    if (e.new_password && e.new_password.trim()) params.new_password = e.new_password;
+    if (typeof e.score === "number") params.score = e.score;
+
+    if (Object.keys(params).length === 0) return alert("변경사항 없음");
+
+    try {
+      await api.patch(`/admin/users/${id}`, null, {params});
+      await loadUsers();
+      setUE(id, { new_password: "" });
+      alert("User updated");
+    } catch (err) {
+      console.error(err?.response?.data || err);
+      alert("Update failed: " + (err?.response?.data?.detail || "Unknown error"));
+    }
+  }
+
+  return (
+    <div style={{ color: "#fff", padding: 20, maxWidth: "1400px", margin: "0 auto" }}>
+      <h2 style={{textAlign: "center", marginBottom: 30, fontSize: "28px"}}>🛠️ Admin Panel</h2>
+
+      <div style={{display: "grid", gap: 40, gridTemplateColumns: "1fr 1fr"}}>
+        
+        {/* Challenge Creation */}
+        <div>
+          <h3 style={{ marginBottom: 20, color: "#4CAF50" }}>📝 Create Challenge</h3>
+          <form onSubmit={createChallenge} style={{ display: "grid", gap: 12 }}>
+            <input 
+              placeholder="Challenge Title" 
+              value={form.title} 
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              style={inputStyles}
+              required
+            />
+            <textarea 
+              placeholder="Challenge Description" 
+              value={form.content} 
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              style={{...inputStyles, minHeight: "80px", resize: "vertical"}}
+              required
+            />
+            
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12}}>
+              <select 
+                value={form.field} 
+                onChange={(e) => setForm({ ...form, field: e.target.value })}
+                style={inputStyles}
+              >
+                <option value="web">Web</option>
+                <option value="pwn">Pwn</option>
+                <option value="rev">Reverse</option>
+                <option value="misc">Misc</option>
+                <option value="crypto">Crypto</option>
+              </select>
+              
+              <input 
+                type="number" 
+                placeholder="Points" 
+                value={form.points} 
+                onChange={(e) => setForm({ ...form, points: Number(e.target.value) })}
+                style={inputStyles}
+              />
+            </div>
+            
+            <input 
+              placeholder="Flag (e.g., codegate2025{...})" 
+              value={form.flag} 
+              onChange={(e) => setForm({ ...form, flag: e.target.value })}
+              style={inputStyles}
+              required
+            />
+
+            <select 
+              value={form.scoring_type} 
+              onChange={(e) => setForm({ ...form, scoring_type: e.target.value })}
+              style={inputStyles}
+            >
+              <option value="static">Static Scoring</option>
+              <option value="dynamic">Dynamic Scoring</option>
+            </select>
+
+            {form.scoring_type === "dynamic" && (
+              <>
+                <input 
+                  type="number" 
+                  placeholder="Initial Value" 
+                  value={form.initial_value} 
+                  onChange={(e) => setForm({ ...form, initial_value: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  placeholder="Decay Function (linear/logarithmic)" 
+                  value={form.decay_function} 
+                  onChange={(e) => setForm({ ...form, decay_function: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Decay Value" 
+                  value={form.decay_value} 
+                  onChange={(e) => setForm({ ...form, decay_value: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  type="number" 
+                  placeholder="Minimum Value" 
+                  value={form.minimum_value} 
+                  onChange={(e) => setForm({ ...form, minimum_value: e.target.value })}
+                  style={inputStyles}
+                />
+              </>
+            )}
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ccc" }}>
+              <input 
+                type="checkbox" 
+                checked={form.is_visible} 
+                onChange={(e) => setForm({ ...form, is_visible: e.target.checked })}
+              />
+              Visible to Users
+            </label>
+
+            <input 
+              type="file" 
+              onChange={(e) => setForm({ ...form, fileObj: e.target.files?.[0] || null })}
+              style={{...inputStyles, padding: "8px"}}
+            />
+            
+            <button 
+              type="submit"
+              style={{
+                ...buttonStyles,
+                borderColor: "#4CAF50",
+                backgroundColor: "#4CAF50",
+                marginTop: 8
+              }}
+            >
+              Create Challenge
+            </button>
+          </form>
+        </div>
+
+        {/* User Management */}
+        <div>
+          <h3 style={{ marginBottom: 20, color: "#2196F3" }}>👥 User Management</h3>
+          <div style={{ display: "grid", gap: 12, maxHeight: "600px", overflowY: "auto" }}>
+            {users.map((u) => {
+              const e = edit[u.id] || {};
+              return (
+                <div key={u.id} style={{ 
+                  border: "1px solid #555", 
+                  borderRadius: 8, 
+                  padding: 12,
+                  backgroundColor: "#222"
+                }}>
+                  <div style={{marginBottom: 8}}>
+                    <strong>#{u.id}</strong> {u.username} 
+                    {u.is_admin ? <span style={{color: "#E91E63"}}> (Admin)</span> : ""}
+                    <br />
+                    <span style={{color: "#4CAF50"}}>Score: {u.score}</span> • 
+                    <span style={{color: u.is_visible ? "#4CAF50" : "#f44336"}}>
+                      {u.is_visible ? "Visible" : "Hidden"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "center" }}>
+                    <label style={{fontSize: "14px"}}>
+                      <input
+                        type="checkbox"
+                        checked={e.is_admin ?? u.is_admin}
+                        onChange={(ev) => setUE(u.id, { is_admin: ev.target.checked })}
+                      />{" "}
+                      Admin
+                    </label>
+                    
+                    <label style={{fontSize: "14px"}}>
+                      <input
+                        type="checkbox"
+                        checked={e.is_visible ?? u.is_visible}
+                        onChange={(ev) => setUE(u.id, { is_visible: ev.target.checked })}
+                      />{" "}
+                      Visible
+                    </label>
+                    
+                    <input
+                      placeholder="New Password"
+                      type="password"
+                      value={e.new_password || ""}
+                      onChange={(ev) => setUE(u.id, { new_password: ev.target.value })}
+                      style={{...inputStyles, fontSize: "12px", padding: "6px 8px"}}
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={() => updateUser(u.id)}
+                    style={{
+                      ...buttonStyles,
+                      borderColor: "#FF9800",
+                      fontSize: "12px",
+                      padding: "6px 12px",
+                      marginTop: 8,
+                      minWidth: "auto"
+                    }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Challenge List */}
+      {challenges.length > 0 && (
+        <div style={{marginTop: 40}}>
+          <h3 style={{ marginBottom: 20, color: "#FF9800" }}>🎯 Current Challenges</h3>
+          <div style={{
+            display: "grid", 
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))"
+          }}>
+            {challenges.map((ch) => (
+              <div key={ch.id} style={{
+                border: "1px solid #555",
+                borderRadius: 8,
+                padding: 12,
+                backgroundColor: "#222"
+              }}>
+                <div style={{fontWeight: "bold", marginBottom: 4}}>
+                  {ch.title}
+                </div>
+                <div style={{fontSize: "12px", color: "#888"}}>
+                  [{ch.field}] • {ch.points}pts • Solves: {ch.solves || 0} • 
+                  <span style={{color: ch.is_visible ? "#4CAF50" : "#f44336"}}>
+                    {ch.is_visible ? " Visible" : " Hidden"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-export default App;
+function NotFound() {
+  return (
+    <div style={{ color: "#fff", textAlign: "center", padding: 40 }}>
+      <h2 style={{fontSize: "48px", marginBottom: 20}}>404</h2>
+      <div style={{fontSize: "18px", marginBottom: 30}}>Page not found</div>
+      <img
+        src="https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200"
+        alt="고양이"
+        style={{ maxWidth: "80%", marginTop: 20, borderRadius: 12 }}
+      />
+      <pre style={{ marginTop: 16, color: "chartreuse" }}>{_hehehe}</pre>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <div style={{ 
+      background: "linear-gradient(135deg, #000 0%, #111 100%)", 
+      minHeight: "100vh" 
+    }}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Main />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/scoreboard" element={<Scoreboard />} />
+          <Route path="/challenges" element={<RequireAuth><Challenges /></RequireAuth>} />
+          <Route path="/admin-panel" element={<RequireAdmin><AdminPanel /></RequireAdmin>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </div>
+  );
+}
