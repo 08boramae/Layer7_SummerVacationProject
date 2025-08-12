@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.db.session import get_db
 from backend.utils.scoreboard import get_scoreboard
 from backend.utils.challenges import get_challenge_stats
+from backend.utils.cheerboard import get_cheerboard
 
 
 router = APIRouter(tags=["ws"])
@@ -17,6 +18,7 @@ class ConnectionManager:
             "scoreboard": set(),
             "challenges": set(),
             "announcements": set(),
+            "cheerboard": set(),
         }
 
     async def connect(self, websocket: WebSocket, channel: str) -> None:
@@ -74,6 +76,17 @@ async def websocket_announcements(websocket: WebSocket):
         manager.disconnect(websocket, "announcements")
 
 
+@router.websocket("/ws/cheerboard")
+async def websocket_cheerboard(websocket: WebSocket, db: Session = Depends(get_db)):
+    await manager.connect(websocket, "cheerboard")
+    try:
+        await websocket.send_json({"type": "cheerboard_snapshot", "data": get_cheerboard(db)})
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, "cheerboard")
+
+
 async def broadcast_scoreboard(db: Session) -> None:
     await manager.broadcast("scoreboard", {"type": "scoreboard_update", "data": get_scoreboard(db)})
 
@@ -87,4 +100,8 @@ async def broadcast_challenges_stats_update(db: Session) -> None:
 
 
 async def broadcast_announcement(message: str) -> None:
-    await manager.broadcast("announcements", {"type": "announcement", "message": message}) 
+    await manager.broadcast("announcements", {"type": "announcement", "message": message})
+
+
+async def broadcast_cheerboard(db: Session) -> None:
+    await manager.broadcast("cheerboard", {"type": "cheerboard_update", "data": get_cheerboard(db)}) 
