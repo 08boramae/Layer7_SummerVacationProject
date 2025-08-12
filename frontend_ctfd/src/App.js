@@ -185,9 +185,7 @@ function useIsMobile(breakpoint = 768) {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
     const handler = (e) => setIsMobile(e.matches);
-    // 즉시 동기화
     setIsMobile(mq.matches);
-    // 브라우저별 이벤트 등록
     if (mq.addEventListener) mq.addEventListener("change", handler);
     else mq.addListener(handler);
     return () => {
@@ -199,6 +197,30 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+const buttonStyles = {
+  padding: "12px 24px",
+  fontSize: "16px",
+  fontWeight: "600",
+  borderRadius: "8px",
+  border: "2px solid #555",
+  backgroundColor: "#222",
+  color: "#fff",
+  cursor: "pointer",
+  transition: "all 0.3s ease",
+  minWidth: "120px",
+};
+
+const inputStyles = {
+  padding: "12px 16px",
+  fontSize: "16px",
+  borderRadius: "8px",
+  border: "2px solid #555",
+  backgroundColor: "#222",
+  color: "#fff",
+  outline: "none",
+  transition: "border-color 0.3s ease",
+};
+
 function Main() {
   const nav = useNavigate();
   const isMobile = useIsMobile();
@@ -208,12 +230,55 @@ function Main() {
       <pre style={{ color: "chartreuse", fontSize: "14px" }}>
         {isMobile ? _main_mobile : _main_ascii}
       </pre>
-      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
-        <button onClick={() => nav("/login")}>Login</button>
-        <button onClick={() => nav("/register")}>Register</button>
-        <button onClick={() => nav("/scoreboard")}>Scoreboard</button>
-        <button onClick={() => nav("/challenges")}>Challenges</button>
-        {isAdmin() && <button onClick={() => nav("/admin-panel")}>Admin Panel</button>}
+      <div style={{ 
+        display: "flex", 
+        gap: 16, 
+        justifyContent: "center", 
+        marginTop: 20, 
+        flexWrap: "wrap" 
+      }}>
+        <button 
+          style={{...buttonStyles, borderColor: "#4CAF50"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#4CAF50"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/login")}
+        >
+          Login
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#2196F3"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#2196F3"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/register")}
+        >
+          Register
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#FF9800"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#FF9800"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/scoreboard")}
+        >
+          Scoreboard
+        </button>
+        <button 
+          style={{...buttonStyles, borderColor: "#E91E63"}} 
+          onMouseOver={(e) => e.target.style.backgroundColor = "#E91E63"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+          onClick={() => nav("/challenges")}
+        >
+          Challenges
+        </button>
+        {isAdmin() && (
+          <button 
+            style={{...buttonStyles, borderColor: "#9C27B0"}} 
+            onMouseOver={(e) => e.target.style.backgroundColor = "#9C27B0"}
+            onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+            onClick={() => nav("/admin-panel")}
+          >
+            Admin Panel
+          </button>
+        )}
       </div>
     </div>
   );
@@ -244,10 +309,30 @@ function Login() {
       <pre style={{ color: "aqua", fontSize: "14px" }}>
         {isMobile ? _login_mobile : _login_ascii}
       </pre>
-      <form onSubmit={handleLogin} style={{ display: "inline-flex", flexDirection: "column", gap: 12 }}>
-        <input name="username" placeholder="username" />
-        <input name="password" placeholder="password" type="password" />
-        <button type="submit">LOGIN</button>
+      <form onSubmit={handleLogin} style={{ display: "inline-flex", flexDirection: "column", gap: 16 }}>
+        <input 
+          name="username" 
+          placeholder="Username" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#4CAF50"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <input 
+          name="password" 
+          placeholder="Password" 
+          type="password" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#4CAF50"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit" 
+          style={{...buttonStyles, borderColor: "#4CAF50", backgroundColor: "#4CAF50"}}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#45a049"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#4CAF50"}
+        >
+          LOGIN
+        </button>
       </form>
     </div>
   );
@@ -277,10 +362,30 @@ function Register() {
       <pre style={{ color: "yellow", fontSize: "14px" }}>
         {isMobile ? _register_mobile : _register_ascii}
       </pre>
-      <form onSubmit={handleRegister} style={{ display: "inline-flex", flexDirection: "column", gap: 12 }}>
-        <input name="username" placeholder="username" />
-        <input name="password" placeholder="password" type="password" />
-        <button type="submit">REGISTER</button>
+      <form onSubmit={handleRegister} style={{ display: "inline-flex", flexDirection: "column", gap: 16 }}>
+        <input 
+          name="username" 
+          placeholder="Username" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#2196F3"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <input 
+          name="password" 
+          placeholder="Password" 
+          type="password" 
+          style={inputStyles}
+          onFocus={(e) => e.target.style.borderColor = "#2196F3"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit" 
+          style={{...buttonStyles, borderColor: "#2196F3", backgroundColor: "#2196F3"}}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#1976D2"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#2196F3"}
+        >
+          REGISTER
+        </button>
       </form>
     </div>
   );
@@ -333,17 +438,50 @@ function Scoreboard() {
         </span>
       </pre>
 
-      <div className="scoreboard-wrap">
-        <h1 className="rank rank-1">
-          {rows[0] ? <>1등 : {rows[0].username} [{rows[0].score}] 🥇</> : "데이터 없음"}
+      <div className="scoreboard-wrap" style={{marginBottom: 30}}>
+        <h1 style={{color: "#FFD700", fontSize: "24px", margin: "10px 0"}}>
+          {rows[0] ? <>🥇 1등: {rows[0].username} [{rows[0].score}점]</> : "데이터 없음"}
         </h1>
-        <h1 className="rank rank-2">
-          {rows[1] ? <>2등 : {rows[1].username} [{rows[1].score}] 🥈</> : null}
+        <h1 style={{color: "#C0C0C0", fontSize: "20px", margin: "8px 0"}}>
+          {rows[1] ? <>🥈 2등: {rows[1].username} [{rows[1].score}점]</> : null}
         </h1>
-        <h1 className="rank rank-3">
-          {rows[2] ? <>3등 : {rows[2].username} [{rows[2].score}] 🥉</> : null}
+        <h1 style={{color: "#CD7F32", fontSize: "18px", margin: "6px 0"}}>
+          {rows[2] ? <>🥉 3등: {rows[2].username} [{rows[2].score}점]</> : null}
         </h1>
       </div>
+
+      {/* 4등 이후 전체 순위 표시 */}
+      {rows.length > 3 && (
+        <div style={{marginBottom: 30}}>
+          <h3 style={{color: "#888", marginBottom: 15}}>전체 순위</h3>
+          <div style={{
+            display: "grid", 
+            gap: "8px", 
+            maxWidth: "600px", 
+            margin: "0 auto",
+            textAlign: "left"
+          }}>
+            {rows.map((user, index) => (
+              <div key={user.username || index} style={{
+                padding: "10px 15px",
+                backgroundColor: index < 3 ? "#333" : "#222",
+                borderRadius: "6px",
+                border: index < 3 ? "2px solid #555" : "1px solid #444",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}>
+                <span style={{fontWeight: index < 3 ? "bold" : "normal"}}>
+                  {index + 1}등. {user.username}
+                </span>
+                <span style={{color: "#4CAF50", fontWeight: "bold"}}>
+                  {user.score}점
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 차트 정확히 가운데 */}
       <div className="chart-wrap" style={{ display: "flex", justifyContent: "center" }}>
@@ -361,13 +499,10 @@ function Scoreboard() {
   );
 }
 
-
-
-
 function Challenges() {
   const isMobile = useIsMobile();
   const [list, setList] = useState([]);
-  const [open, setOpen] = useState({}); 
+  const [openStates, setOpenStates] = useState({}); // 개별 상태 관리
 
   useEffect(() => {
     let alive = true;
@@ -375,10 +510,11 @@ function Challenges() {
       try {
         const { data } = await api.get("/challenges");
         if (!alive) return;
+        // 백엔드 응답에 맞게 ID 추출 - title을 기준으로 고유 키 생성
         const normalized = Array.isArray(data)
-          ? data.map((it) => ({
+          ? data.map((it, idx) => ({
               ...it,
-              __id: Number(it.id ?? it.challenge_id ?? it.challengeId ?? it.cid ?? it.pk) || null,
+              __uniqueId: it.title + "_" + idx, // title + index로 고유 키 생성
             }))
           : [];
         setList(normalized);
@@ -389,8 +525,11 @@ function Challenges() {
     return () => { alive = false; };
   }, []);
 
-  function toggle(id) {
-    setOpen((p) => ({ ...p, [id]: !p[id] }));
+  function toggleDetail(uniqueId) {
+    setOpenStates(prev => ({
+      ...prev,
+      [uniqueId]: !prev[uniqueId]
+    }));
   }
 
   return (
@@ -407,17 +546,21 @@ function Challenges() {
         style={{
           display: "grid",
           gap: 16,
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(300px, 1fr))",
+          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(350px, 1fr))",
+          maxWidth: "1200px",
+          margin: "0 auto"
         }}
       >
         {list.map((ch) => (
           <div
-            key={ch.__id || ch.title}
+            key={ch.__uniqueId}
             style={{
-              border: "1px solid #555",
-              borderRadius: 8,
-              padding: 12,
+              border: "2px solid #555",
+              borderRadius: 12,
+              padding: 16,
               backgroundColor: "#111",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.3)"
             }}
           >
             <div
@@ -425,25 +568,35 @@ function Challenges() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: 8,
+                gap: 12,
+                marginBottom: 12
               }}
             >
-              <b>[{ch.field}] {ch.title}</b>
+              <div>
+                <div style={{fontSize: "18px", fontWeight: "bold", color: "#4CAF50"}}>
+                  {ch.title}
+                </div>
+                <div style={{fontSize: "14px", color: "#888", marginTop: 4}}>
+                  [{ch.field}] • {ch.points}점
+                </div>
+              </div>
               <button
-                onClick={() => toggle(ch.__id)}
+                onClick={() => toggleDetail(ch.__uniqueId)}
                 style={{
-                  background: "#333",
-                  color: "#fff",
-                  border: "none",
-                  padding: "4px 8px",
-                  cursor: "pointer",
-                  borderRadius: 4,
+                  ...buttonStyles,
+                  borderColor: "#FF9800",
+                  minWidth: "100px",
+                  fontSize: "14px",
+                  padding: "8px 16px"
                 }}
+                onMouseOver={(e) => e.target.style.backgroundColor = "#FF9800"}
+                onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
               >
-                Detail
+                {openStates[ch.__uniqueId] ? "Hide" : "Detail"}
               </button>
             </div>
-            {open[ch.__id] && <ChallengeCard ch={ch} />}
+            {openStates[ch.__uniqueId] && <ChallengeCard ch={ch} />}
+            {console.log(ch)}
           </div>
         ))}
       </div>
@@ -451,29 +604,112 @@ function Challenges() {
   );
 }
 
-
-
-
 function ChallengeCard({ ch }) {
   const [msg, setMsg] = useState("");
+  const [lastSubmission, setLastSubmission] = useState({ challengeId: null, flag: null });
 
   async function handleSubmitFlag(e) {
     e.preventDefault();
-    const flag = e.currentTarget.flag.value;
+    const flag = e.currentTarget.flag.value.trim();
+    if (!flag) {
+      setMsg("플래그를 입력해주세요");
+      return;
+    }
+
+    let challengeId = ch?.id;
+
+    // 같은 문제 + 같은 플래그 중복 제출 방지
+    if (lastSubmission.challengeId === challengeId && lastSubmission.flag === flag) {
+      setMsg("이미 제출함");
+      return;
+    }
+
+    if (!challengeId) {
+      try {
+        const { data: publicList } = await api.get("/challenges");
+        const matched = publicList.find(c => c.title === ch.title);
+        if (matched) {
+          const { data: adminList } = await api.get("/admin/challenges", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          const adminMatched = adminList.find(a => a.title === ch.title);
+          if (adminMatched) challengeId = adminMatched.id;
+        }
+      } catch {
+        setMsg("Challenge ID를 찾을 수 없습니다");
+        return;
+      }
+    }
+
+    if (!challengeId) {
+      setMsg("Challenge ID를 찾을 수 없습니다");
+      return;
+    }
+
     try {
-      const { data } = await api.post(`/challenges/${ch.__id}/submit`, { flag });
+      const { data } = await api.post(`/challenges/${challengeId}/submit`, { flag });
+      console.log(data);
       setMsg(data?.message || "제출됨");
+
+      setLastSubmission({ challengeId, flag });
+
+      if (data?.success) e.currentTarget.flag.value = "";
     } catch (err) {
-      const s = err?.response?.status;
-      if (s === 404) setMsg(`문제 #${ch.__id} 를 찾을 수 없습니다`);
-      else if (s === 401) setMsg("로그인이 필요합니다");
-      else setMsg("제출 실패");
+    const s = err?.response?.status;
+    const errMsg = err?.response?.data?.detail || err?.message || "";
+
+    if (errMsg.includes("UNIQUE constraint failed")) {
+      setMsg("이미 제출함");
+    }
+    
+    else if (s === 400 || s === 422) {
+      setMsg("틀린 플래그입니다");
+    }
+    
+    else if (s === 404) {
+      setMsg("문제를 찾을 수 없습니다");
+    }
+    
+    else if (s === 401) {
+      setMsg("로그인이 필요합니다");
+    }
+    
+    else {
+      setMsg(errMsg || "제출 실패");
+    }
+
+      // 실패 시에도 마지막 시도 기록
+      setLastSubmission({ challengeId, flag });
     }
   }
 
+
+
   async function handleDownload() {
+    let challengeId = null;
+    
+    if (ch.id) {
+      challengeId = ch.id;
+    } else {
+      try {
+        const { data: allChallenges } = await api.get("/admin/challenges");
+        const matchedChallenge = allChallenges.find(c => c.title === ch.title);
+        if (matchedChallenge) {
+          challengeId = matchedChallenge.id;
+        }
+      } catch {
+        alert("Challenge ID를 찾을 수 없습니다");
+        return;
+      }
+    }
+
+    if (!challengeId) {
+      alert("Challenge ID를 찾을 수 없습니다");
+      return;
+    }
+
     try {
-      const res = await api.get(`/challenges/${ch.__id}/download`, { responseType: "blob" });
+      const res = await api.get(`/challenges/${challengeId}/download`, { responseType: "blob" });
       const blob = new Blob([res.data]);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -489,26 +725,104 @@ function ChallengeCard({ ch }) {
   }
 
   return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ marginBottom: 8 }}>{ch.content}</div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button onClick={handleDownload}>파일 다운로드</button>
+    <div style={{ 
+      marginTop: 15, 
+      padding: 15, 
+      backgroundColor: "#222", 
+      borderRadius: 8,
+      border: "1px solid #444"
+    }}>
+      <div style={{ 
+        marginBottom: 15, 
+        lineHeight: 1.6,
+        color: "#ccc",
+        whiteSpace: "pre-wrap"
+      }}>
+        {ch.content}
+      </div>
+      
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 15 }}>
+        <button 
+          onClick={handleDownload}
+          style={{
+            ...buttonStyles,
+            borderColor: "#2196F3",
+            fontSize: "14px",
+            padding: "8px 16px",
+            minWidth: "auto"
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#2196F3"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+        >
+          📁 파일 다운로드
+        </button>
         {ch.file && /^https?:\/\//i.test(ch.file) && (
-          <a href={ch.file} target="_blank" rel="noreferrer">외부 파일 링크</a>
+          <a 
+            href={ch.file} 
+            target="_blank" 
+            rel="noreferrer"
+            style={{
+              color: "#4CAF50",
+              textDecoration: "none",
+              padding: "8px 16px",
+              border: "1px solid #4CAF50",
+              borderRadius: "6px",
+              fontSize: "14px"
+            }}
+          >
+            🔗 외부 파일 링크
+          </a>
         )}
       </div>
-      <form onSubmit={handleSubmitFlag} style={{ marginTop: 10, display: "flex", gap: 8 }}>
-        <input name="flag" placeholder="codegate2025{...}" style={{ flex: 1 }} />
-        <button type="submit">Submit</button>
+      
+      <form onSubmit={handleSubmitFlag} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <input 
+          name="flag" 
+          placeholder="codegate2025{...}" 
+          style={{
+            ...inputStyles,
+            flex: 1,
+            fontSize: "14px",
+            padding: "10px 14px"
+          }}
+          onFocus={(e) => e.target.style.borderColor = "#E91E63"}
+          onBlur={(e) => e.target.style.borderColor = "#555"}
+        />
+        <button 
+          type="submit"
+          style={{
+            ...buttonStyles,
+            borderColor: "#E91E63",
+            backgroundColor: "#E91E63",
+            fontSize: "14px",
+            padding: "10px 20px",
+            minWidth: "auto"
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#C2185B"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#E91E63"}
+        >
+          Submit
+        </button>
       </form>
-      {msg && <div style={{ marginTop: 8 }}>{msg}</div>}
+      
+      {msg && (
+        <div style={{ 
+          marginTop: 12, 
+          padding: "8px 12px",
+          backgroundColor: msg.includes("성공") || msg.includes("Correct") ? "#4CAF50" : "#f44336",
+          borderRadius: 6,
+          fontSize: "14px"
+        }}>
+          {msg}
+        </div>
+      )}
     </div>
   );
 }
 
-
 function AdminPanel() {
   const [users, setUsers] = useState([]);
+  const [challenges, setChallenges] = useState([]);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -524,7 +838,7 @@ function AdminPanel() {
     fileObj: null
   });
 
-  const [edit, setEdit] = useState({}); 
+  const [edit, setEdit] = useState({});
   const setUE = (id, patch) => setEdit(p => ({ ...p, [id]: { ...(p[id]||{}), ...patch } }));
 
   async function loadUsers() {
@@ -536,8 +850,18 @@ function AdminPanel() {
     }
   }
 
+  async function loadChallenges() {
+    try {
+      const { data } = await api.get("/admin/challenges");
+      setChallenges(Array.isArray(data) ? data : []);
+    } catch {
+      setChallenges([]);
+    }
+  }
+
   useEffect(() => {
     loadUsers();
+    loadChallenges();
   }, []);
 
   async function createChallenge(e) {
@@ -584,9 +908,10 @@ function AdminPanel() {
         minimum_value: "",
         fileObj: null
       });
+      loadChallenges();
     } catch (err) {
       console.error(err?.response?.data || err);
-      alert("Create failed");
+      alert("Create failed: " + (err?.response?.data?.detail || "Unknown error"));
     }
   }
 
@@ -596,94 +921,248 @@ function AdminPanel() {
     if (typeof e.is_admin === "boolean") params.is_admin = e.is_admin;
     if (typeof e.is_visible === "boolean") params.is_visible = e.is_visible;
     if (e.new_password && e.new_password.trim()) params.new_password = e.new_password;
+    if (typeof e.score === "number") params.score = e.score;
 
     if (Object.keys(params).length === 0) return alert("변경사항 없음");
 
     try {
-      await api.patch(`/admin/users/${id}`, null, { params });
+      await api.patch(`/admin/users/${id}`, null, {params});
       await loadUsers();
       setUE(id, { new_password: "" });
       alert("User updated");
     } catch (err) {
       console.error(err?.response?.data || err);
-      alert("Update failed");
+      alert("Update failed: " + (err?.response?.data?.detail || "Unknown error"));
     }
   }
 
   return (
-    <div style={{ color: "#fff", padding: 20 }}>
-      <h2>Admin Panel</h2>
+    <div style={{ color: "#fff", padding: 20, maxWidth: "1400px", margin: "0 auto" }}>
+      <h2 style={{textAlign: "center", marginBottom: 30, fontSize: "28px"}}>🛠️ Admin Panel</h2>
 
-      <h3 style={{ marginTop: 16 }}>Create Challenge</h3>
-      <form onSubmit={createChallenge} style={{ display: "grid", gap: 8, maxWidth: 640 }}>
-        <input placeholder="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <input placeholder="content" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-        <select value={form.field} onChange={(e) => setForm({ ...form, field: e.target.value })}>
-          <option value="web">web</option>
-          <option value="pwn">pwn</option>
-          <option value="rev">rev</option>
-          <option value="misc">misc</option>
-        </select>
-        <input type="number" placeholder="points" value={form.points} onChange={(e) => setForm({ ...form, points: Number(e.target.value) })} />
-        <input placeholder="flag" value={form.flag} onChange={(e) => setForm({ ...form, flag: e.target.value })} />
-
-        <select value={form.scoring_type} onChange={(e) => setForm({ ...form, scoring_type: e.target.value })}>
-          <option value="static">static</option>
-          <option value="dynamic">dynamic</option>
-        </select>
-
-        <input type="number" placeholder="initial_value" value={form.initial_value} onChange={(e) => setForm({ ...form, initial_value: e.target.value })} />
-        <input placeholder="decay_function (linear|logarithmic)" value={form.decay_function} onChange={(e) => setForm({ ...form, decay_function: e.target.value })} />
-        <input type="number" step="0.01" placeholder="decay_value" value={form.decay_value} onChange={(e) => setForm({ ...form, decay_value: e.target.value })} />
-        <input type="number" placeholder="minimum_value" value={form.minimum_value} onChange={(e) => setForm({ ...form, minimum_value: e.target.value })} />
-
-        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="checkbox" checked={form.is_visible} onChange={(e) => setForm({ ...form, is_visible: e.target.checked })} />
-          visible
-        </label>
-
-        <input type="file" onChange={(e) => setForm({ ...form, fileObj: e.target.files?.[0] || null })} />
-        <button type="submit">Create</button>
-      </form>
-
-      <h3 style={{ marginTop: 24 }}>Users</h3>
-      <div style={{ display: "grid", gap: 10, maxWidth: 800 }}>
-        {users.map((u) => {
-          const e = edit[u.id] || {};
-          return (
-            <div key={u.id} style={{ border: "1px solid #555", borderRadius: 8, padding: 10 }}>
-              <div>
-                <b>#{u.id}</b> {u.username} {u.is_admin ? "(admin)" : ""} &nbsp; score: {u.score} &nbsp; visible: {String(u.is_visible)}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={e.is_admin ?? u.is_admin}
-                    onChange={(ev) => setUE(u.id, { is_admin: ev.target.checked })}
-                  />{" "}
-                  is_admin
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={e.is_visible ?? u.is_visible}
-                    onChange={(ev) => setUE(u.id, { is_visible: ev.target.checked })}
-                  />{" "}
-                  is_visible
-                </label>
-                <input
-                  placeholder="new password"
-                  type="password"
-                  value={e.new_password || ""}
-                  onChange={(ev) => setUE(u.id, { new_password: ev.target.value })}
-                />
-                <button onClick={() => updateUser(u.id)}>save</button>
-              </div>
+      <div style={{display: "grid", gap: 40, gridTemplateColumns: "1fr 1fr"}}>
+        
+        {/* Challenge Creation */}
+        <div>
+          <h3 style={{ marginBottom: 20, color: "#4CAF50" }}>📝 Create Challenge</h3>
+          <form onSubmit={createChallenge} style={{ display: "grid", gap: 12 }}>
+            <input 
+              placeholder="Challenge Title" 
+              value={form.title} 
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              style={inputStyles}
+              required
+            />
+            <textarea 
+              placeholder="Challenge Description" 
+              value={form.content} 
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              style={{...inputStyles, minHeight: "80px", resize: "vertical"}}
+              required
+            />
+            
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12}}>
+              <select 
+                value={form.field} 
+                onChange={(e) => setForm({ ...form, field: e.target.value })}
+                style={inputStyles}
+              >
+                <option value="web">Web</option>
+                <option value="pwn">Pwn</option>
+                <option value="rev">Reverse</option>
+                <option value="misc">Misc</option>
+                <option value="crypto">Crypto</option>
+              </select>
+              
+              <input 
+                type="number" 
+                placeholder="Points" 
+                value={form.points} 
+                onChange={(e) => setForm({ ...form, points: Number(e.target.value) })}
+                style={inputStyles}
+              />
             </div>
-          );
-        })}
+            
+            <input 
+              placeholder="Flag (e.g., codegate2025{...})" 
+              value={form.flag} 
+              onChange={(e) => setForm({ ...form, flag: e.target.value })}
+              style={inputStyles}
+              required
+            />
+
+            <select 
+              value={form.scoring_type} 
+              onChange={(e) => setForm({ ...form, scoring_type: e.target.value })}
+              style={inputStyles}
+            >
+              <option value="static">Static Scoring</option>
+              <option value="dynamic">Dynamic Scoring</option>
+            </select>
+
+            {form.scoring_type === "dynamic" && (
+              <>
+                <input 
+                  type="number" 
+                  placeholder="Initial Value" 
+                  value={form.initial_value} 
+                  onChange={(e) => setForm({ ...form, initial_value: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  placeholder="Decay Function (linear/logarithmic)" 
+                  value={form.decay_function} 
+                  onChange={(e) => setForm({ ...form, decay_function: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Decay Value" 
+                  value={form.decay_value} 
+                  onChange={(e) => setForm({ ...form, decay_value: e.target.value })}
+                  style={inputStyles}
+                />
+                <input 
+                  type="number" 
+                  placeholder="Minimum Value" 
+                  value={form.minimum_value} 
+                  onChange={(e) => setForm({ ...form, minimum_value: e.target.value })}
+                  style={inputStyles}
+                />
+              </>
+            )}
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#ccc" }}>
+              <input 
+                type="checkbox" 
+                checked={form.is_visible} 
+                onChange={(e) => setForm({ ...form, is_visible: e.target.checked })}
+              />
+              Visible to Users
+            </label>
+
+            <input 
+              type="file" 
+              onChange={(e) => setForm({ ...form, fileObj: e.target.files?.[0] || null })}
+              style={{...inputStyles, padding: "8px"}}
+            />
+            
+            <button 
+              type="submit"
+              style={{
+                ...buttonStyles,
+                borderColor: "#4CAF50",
+                backgroundColor: "#4CAF50",
+                marginTop: 8
+              }}
+            >
+              Create Challenge
+            </button>
+          </form>
+        </div>
+
+        {/* User Management */}
+        <div>
+          <h3 style={{ marginBottom: 20, color: "#2196F3" }}>👥 User Management</h3>
+          <div style={{ display: "grid", gap: 12, maxHeight: "600px", overflowY: "auto" }}>
+            {users.map((u) => {
+              const e = edit[u.id] || {};
+              return (
+                <div key={u.id} style={{ 
+                  border: "1px solid #555", 
+                  borderRadius: 8, 
+                  padding: 12,
+                  backgroundColor: "#222"
+                }}>
+                  <div style={{marginBottom: 8}}>
+                    <strong>#{u.id}</strong> {u.username} 
+                    {u.is_admin ? <span style={{color: "#E91E63"}}> (Admin)</span> : ""}
+                    <br />
+                    <span style={{color: "#4CAF50"}}>Score: {u.score}</span> • 
+                    <span style={{color: u.is_visible ? "#4CAF50" : "#f44336"}}>
+                      {u.is_visible ? "Visible" : "Hidden"}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "center" }}>
+                    <label style={{fontSize: "14px"}}>
+                      <input
+                        type="checkbox"
+                        checked={e.is_admin ?? u.is_admin}
+                        onChange={(ev) => setUE(u.id, { is_admin: ev.target.checked })}
+                      />{" "}
+                      Admin
+                    </label>
+                    
+                    <label style={{fontSize: "14px"}}>
+                      <input
+                        type="checkbox"
+                        checked={e.is_visible ?? u.is_visible}
+                        onChange={(ev) => setUE(u.id, { is_visible: ev.target.checked })}
+                      />{" "}
+                      Visible
+                    </label>
+                    
+                    <input
+                      placeholder="New Password"
+                      type="password"
+                      value={e.new_password || ""}
+                      onChange={(ev) => setUE(u.id, { new_password: ev.target.value })}
+                      style={{...inputStyles, fontSize: "12px", padding: "6px 8px"}}
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={() => updateUser(u.id)}
+                    style={{
+                      ...buttonStyles,
+                      borderColor: "#FF9800",
+                      fontSize: "12px",
+                      padding: "6px 12px",
+                      marginTop: 8,
+                      minWidth: "auto"
+                    }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Challenge List */}
+      {challenges.length > 0 && (
+        <div style={{marginTop: 40}}>
+          <h3 style={{ marginBottom: 20, color: "#FF9800" }}>🎯 Current Challenges</h3>
+          <div style={{
+            display: "grid", 
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))"
+          }}>
+            {challenges.map((ch) => (
+              <div key={ch.id} style={{
+                border: "1px solid #555",
+                borderRadius: 8,
+                padding: 12,
+                backgroundColor: "#222"
+              }}>
+                <div style={{fontWeight: "bold", marginBottom: 4}}>
+                  {ch.title}
+                </div>
+                <div style={{fontSize: "12px", color: "#888"}}>
+                  [{ch.field}] • {ch.points}pts • Solves: {ch.solves || 0} • 
+                  <span style={{color: ch.is_visible ? "#4CAF50" : "#f44336"}}>
+                    {ch.is_visible ? " Visible" : " Hidden"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -691,21 +1170,24 @@ function AdminPanel() {
 function NotFound() {
   return (
     <div style={{ color: "#fff", textAlign: "center", padding: 40 }}>
-      <h2>404</h2>
-      <div>Page not found</div>
+      <h2 style={{fontSize: "48px", marginBottom: 20}}>404</h2>
+      <div style={{fontSize: "18px", marginBottom: 30}}>Page not found</div>
       <img
         src="https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200"
         alt="고양이"
         style={{ maxWidth: "80%", marginTop: 20, borderRadius: 12 }}
       />
-      <pre style={{ marginTop: 16 }}>{_hehehe}</pre>
+      <pre style={{ marginTop: 16, color: "chartreuse" }}>{_hehehe}</pre>
     </div>
   );
 }
 
 export default function App() {
   return (
-    <div style={{ background: "#000", minHeight: "100vh" }}>
+    <div style={{ 
+      background: "linear-gradient(135deg, #000 0%, #111 100%)", 
+      minHeight: "100vh" 
+    }}>
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Main />} />
