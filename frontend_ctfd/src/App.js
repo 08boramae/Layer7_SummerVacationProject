@@ -141,6 +141,70 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+function normalizeCheerRows(raw) {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr.map(r => ({
+    id: r.id ?? r.user_id ?? null,
+    username: r.username ?? r.user_name ?? "unknown",
+    cheers: Number(r.cheers ?? r.count ?? 0),
+  }));
+}
+
+function useCheerboardWS() {
+  const [rows, setRows] = React.useState([]);
+  const [connected, setConnected] = React.useState(false);
+
+  React.useEffect(() => {
+    let ws;
+    let reconnectTimer;
+    let gotFirst = false;
+
+    async function warmup() {
+      if (gotFirst) return;
+      try {
+        const { data } = await api.get("/cheer/board");
+        setRows(normalizeCheerRows(data));
+      } catch {}
+    }
+
+    function connect() {
+      ws = new WebSocket(toWsUrl("/ws/cheerboard"));
+      const fallbackTimer = setTimeout(warmup, 1200);
+
+      ws.onopen = () => setConnected(true);
+
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === "cheerboard_snapshot" || msg.type === "cheerboard_update") {
+            gotFirst = true;
+            clearTimeout(fallbackTimer);
+            setRows(normalizeCheerRows(msg.data));
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        reconnectTimer = setTimeout(connect, 2000);
+      };
+
+      ws.onerror = () => {
+        try { ws.close(); } catch {}
+      };
+    }
+
+    connect();
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, []);
+
+  return { rows, connected };
+}
+
+
 
 function toWsUrl(path) {
   try {
@@ -155,32 +219,52 @@ function toWsUrl(path) {
 }
 
 
-function useScoreboardWS() {
-  const [rows, setRows] = useState([]);
-  const [connected, setConnected] = useState(false);
+// 기존 것을 아래처럼 교체
+function normalizeScoreRows(raw) {
+  const arr = Array.isArray(raw) ? raw : [];
+  return arr
+    .map(r => ({
+      // 다양한 케이스로부터 id 최대한 확보
+      id: r.id ?? r.user_id ?? r.uid ?? (r.user && r.user.id) ?? null,
+      username: r.username ?? r.user_name ?? (r.user && r.user.username) ?? "unknown",
+      score: Number(r.score ?? 0),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
 
-  useEffect(() => {
+
+function useScoreboardWS() {
+  const [rows, setRows] = React.useState([]);
+  const [connected, setConnected] = React.useState(false);
+
+  React.useEffect(() => {
     let ws;
     let reconnectTimer;
+    let gotFirst = false;
+
+    async function warmup() {
+      if (gotFirst) return;
+      try {
+        const { data } = await api.get("/scoreboard");
+        setRows(normalizeScoreRows(data));
+      } catch {}
+    }
 
     function connect() {
       ws = new WebSocket(toWsUrl("/ws/scoreboard"));
+      const fallbackTimer = setTimeout(warmup, 1200);
 
-      ws.onopen = () => {
-        setConnected(true);
-      };
+      ws.onopen = () => setConnected(true);
 
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
           if (msg.type === "scoreboard_snapshot" || msg.type === "scoreboard_update") {
-            if (Array.isArray(msg.data)) {
-              setRows([...msg.data].sort((a, b) => b.score - a.score));
-            }
+            gotFirst = true;
+            clearTimeout(fallbackTimer);
+            setRows(normalizeScoreRows(msg.data));
           }
-        } catch (e) {
-          console.error("WS parse error:", e);
-        }
+        } catch {}
       };
 
       ws.onclose = () => {
@@ -189,12 +273,11 @@ function useScoreboardWS() {
       };
 
       ws.onerror = () => {
-        ws.close();
+        try { ws.close(); } catch {}
       };
     }
 
     connect();
-
     return () => {
       if (ws) ws.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
@@ -203,6 +286,7 @@ function useScoreboardWS() {
 
   return { rows, connected };
 }
+
 
 
 
@@ -222,6 +306,29 @@ function parseJwt(t) {
   }
 }
 
+// Scoreboard 컴포넌트 안(혹은 파일 상단)에 추가
+async function resolveCheerTargetId(user, idByUsername) {
+  const uname = (user?.username || "").toLowerCase();
+  if (user?.id) return user.id;
+
+  // 1차: 메모리에 있는 맵에서 시도
+  const fromMap = idByUsername.get(uname);
+  if (fromMap) return fromMap;
+
+  // 2차: 최신 데이터 한번 더 긁어서 시도
+  try {
+    const { data } = await api.get("/cheer/board");
+    console.log(data);
+    const fresh = Array.isArray(data) ? data : [];
+    // 백엔드가 주는 키 다양성 커버
+    const rec = fresh.find(
+      r => ((r.username ?? r.user_name ?? "").toLowerCase() === uname)
+    );
+    if (rec) return (rec.id ?? rec.user_id ?? null);
+  } catch (_) {}
+
+  return null;
+}
 
 
 
@@ -462,12 +569,55 @@ function Register() {
 
 function Scoreboard() {
   const isMobile = useIsMobile();
-  const { rows, connected } = useScoreboardWS(); // ✅ WS 훅 사용
+  const { rows, connected } = useScoreboardWS();       // 기존 스코어 WS 그대로
+  const { rows: cheerRows } = useCheerboardWS();       // 👈 응원판 WS 추가 (표시에만 사용)
+
+  // 응원 인덱스 (id, username 둘 다 매칭 지원)
+  const cheerById = React.useMemo(() => {
+    const m = new Map();
+    cheerRows.forEach(r => { if (r.id != null) m.set(String(r.id), r.cheers); });
+    return m;
+  }, [cheerRows]);
+
+  const idByUsername = React.useMemo(() => {
+    const m = new Map();
+    cheerRows.forEach(r => m.set((r.username||"").toLowerCase(), r.id));
+    return m;
+  }, [cheerRows]);
+
+  const getCheerInfo = React.useCallback((user) => {
+    const uname = (user?.username || "").toLowerCase();
+    const id = user?.id ?? idByUsername.get(uname) ?? null;
+    const count = id != null ? (cheerById.get(String(id)) ?? 0) : 0;
+    return { id, count };
+  }, [cheerById, idByUsername]);
 
   const [names, scores] = useMemo(
     () => [rows.map((r) => r.username), rows.map((r) => r.score)],
     [rows]
   );
+
+  async function handleCheer(user) {
+  if (!isAuthed()) return alert("로그인이 필요합니다");
+
+  // 여기서 반드시 타겟 ID를 해석
+  const targetId = await resolveCheerTargetId(user, idByUsername);
+  if (!targetId) return alert("이 사용자의 ID를 확인할 수 없습니다");
+
+  try {
+    await api.post(`/cheer/${targetId}`);
+    // 즉시 최신 반영 시도 (WS 오기 전 UX 보강)
+    try { await api.get("/cheer/board"); } catch {}
+  } catch (err) {
+    const s = err?.response?.status;
+    const msg = err?.response?.data?.detail || err?.message || "";
+    if (s === 400 && /Already cheered/i.test(msg)) return alert("이미 응원했습니다");
+    if (s === 400 && /Cannot cheer yourself/i.test(msg)) return alert("본인에게는 응원할 수 없습니다");
+    if (s === 404) return alert("대상 사용자를 찾을 수 없습니다");
+    if (s === 401) return alert("로그인이 필요합니다");
+    alert(msg || "응원 실패");
+  }
+}
 
   const options = {
     chart: { id: "scoreboard", parentHeightOffset: 0 },
@@ -485,6 +635,12 @@ function Scoreboard() {
   };
   const series = [{ name: "score", data: scores }];
 
+  // ⬇ UI: 상단 TOP3에 응원 수 표시 추가
+  const top1 = rows[0]; const top2 = rows[1]; const top3 = rows[2];
+  const c1 = top1 ? getCheerInfo(top1).count : 0;
+  const c2 = top2 ? getCheerInfo(top2).count : 0;
+  const c3 = top3 ? getCheerInfo(top3).count : 0;
+
   return (
     <div style={{ color: "#fff", textAlign: "center", padding: 20 }}>
       <pre className="scoreboard-header" style={{ display: "flex", justifyContent: "center" }}>
@@ -493,56 +649,78 @@ function Scoreboard() {
         </span>
       </pre>
 
-      {/* 연결 상태 표시 */}
-      <div style={{ marginBottom: 10, fontSize: 12, color: connected ? "#4CAF50" : "#f44336" }}>
-        {connected ? "● LIVE" : "● Reconnecting..."}
+      <div style={{ marginBottom: 10, fontSize: 12 }}>
+        <span style={{ color: connected ? "#4CAF50" : "#f44336" }}>
+          {connected ? "● LIVE" : "● Reconnecting..."}
+        </span>
+        {/* cheerboard 연결표시는 굳이 안보여줘도 OK */}
       </div>
 
       <div className="scoreboard-wrap" style={{marginBottom: 30}}>
         <h1 style={{color: "#FFD700", fontSize: "24px", margin: "10px 0"}}>
-          {rows[0] ? <>🥇 1등: {rows[0].username} [{rows[0].score}점]</> : "데이터 없음"}
+          {top1 ? <>🥇 1등: {top1.username} [{top1.score}점] • 💖 {c1}</> : "데이터 없음"}
         </h1>
         <h1 style={{color: "#C0C0C0", fontSize: "20px", margin: "8px 0"}}>
-          {rows[1] ? <>🥈 2등: {rows[1].username} [{rows[1].score}점]</> : null}
+          {top2 ? <>🥈 2등: {top2.username} [{top2.score}점] • 💖 {c2}</> : null}
         </h1>
         <h1 style={{color: "#CD7F32", fontSize: "18px", margin: "6px 0"}}>
-          {rows[2] ? <>🥉 3등: {rows[2].username} [{rows[2].score}점]</> : null}
+          {top3 ? <>🥉 3등: {top3.username} [{top3.score}점] • 💖 {c3}</> : null}
         </h1>
       </div>
 
-      {rows.length > 3 && (
+      {rows.length > 0 && (
         <div style={{marginBottom: 30}}>
           <h3 style={{color: "#888", marginBottom: 15}}>전체 순위</h3>
           <div style={{
-            display: "grid", 
-            gap: "8px", 
-            maxWidth: "600px", 
+            display: "grid",
+            gap: "8px",
+            maxWidth: "700px",
             margin: "0 auto",
             textAlign: "left"
           }}>
-            {rows.map((user, index) => (
-              <div key={user.username || index} style={{
-                padding: "10px 15px",
-                backgroundColor: index < 3 ? "#333" : "#222",
-                borderRadius: "6px",
-                border: index < 3 ? "2px solid #555" : "1px solid #444",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }}>
-                <span style={{fontWeight: index < 3 ? "bold" : "normal"}}>
-                  {index + 1}등. {user.username}
-                </span>
-                <span style={{color: "#4CAF50", fontWeight: "bold"}}>
-                  {user.score}점
-                </span>
-              </div>
-            ))}
+            {rows.map((user, index) => {
+              const info = getCheerInfo(user);
+              return (
+                <div key={user.username || index} style={{
+                  padding: "10px 15px",
+                  backgroundColor: index < 3 ? "#333" : "#222",
+                  borderRadius: "6px",
+                  border: index < 3 ? "2px solid #555" : "1px solid #444",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12
+                }}>
+                  <span style={{fontWeight: index < 3 ? "bold" : "normal"}}>
+                    {index + 1}등. {user.username}
+                  </span>
+                  <span style={{display: "flex", alignItems: "center", gap: 12}}>
+                    <span style={{color: "#4CAF50", fontWeight: "bold"}}>{user.score}점</span>
+                    <span style={{color: "#FFD700"}}>💖 {info.count}</span>
+                    <button
+                      
+                      onClick={() => handleCheer(user)}
+                      style={{
+                        ...buttonStyles,
+                        borderColor: "#E91E63",
+                        minWidth: "auto",
+                        fontSize: 12,
+                        padding: "6px 10px"
+                      }}
+                      onMouseOver={(e) => e.target.style.backgroundColor = "#E91E63"}
+                      onMouseOut={(e) => e.target.style.backgroundColor = "#222"}
+                      title={!info.id ? "ID 없음" : "응원 보내기"}
+                    >
+                      Cheer
+                    </button>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* 차트 정확히 가운데 */}
       <div className="chart-wrap" style={{ display: "flex", justifyContent: "center" }}>
         <div className="chart-container" style={{ width: "100%", maxWidth: 1000 }}>
           <Chart
@@ -557,6 +735,7 @@ function Scoreboard() {
     </div>
   );
 }
+
 
 function Challenges() {
   const isMobile = useIsMobile();
