@@ -166,7 +166,7 @@ async def update_challenge(
 
     await broadcast_challenges_update({"event": "updated", "challenge_id": challenge_id})
     await broadcast_challenges_stats_update(db)
-    return {"ok": True}
+    return {"status": True}
 
 
 @router.delete("/challenges/{challenge_id}")
@@ -178,7 +178,7 @@ async def delete_challenge(challenge_id: int, db: Session = Depends(get_db)):
     db.commit()
     await broadcast_challenges_update({"event": "deleted", "challenge_id": challenge_id})
     await broadcast_challenges_stats_update(db)
-    return {"ok": True}
+    return {"status": True}
 
 
 @router.get("/users")
@@ -208,11 +208,20 @@ async def update_user(
     await broadcast_scoreboard(db)
     return {"id": user.id, "is_admin": user.is_admin, "is_visible": user.is_visible}
 
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"status": True}
+
 
 @router.post("/announce")
 async def create_announcement(message: str = Form(...)):
     await broadcast_announcement(message)
-    return {"ok": True} 
+    return {"status": True} 
 
 @router.get("/cheer/list", dependencies=[Depends(require_admin)])
 def list_cheers_admin(db: Session = Depends(get_db)):

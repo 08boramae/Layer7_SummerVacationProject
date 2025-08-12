@@ -7,7 +7,6 @@ from backend.models import User
 from backend.schemas.auth import LoginRequest, RegisterRequest, Token
 from backend.services.auth import create_access_token, hash_password, verify_password
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
