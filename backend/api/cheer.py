@@ -23,7 +23,7 @@ def send_cheer(receiver_user_id: int, db: Session = Depends(get_db), user=Depend
 
     db.add(Cheer(sender_user_id=user.id, receiver_user_id=receiver_user_id))
     db.commit()
-    return {"ok": True}
+    return {"status": True}
 
 
 @router.get("/count/{user_id}")
