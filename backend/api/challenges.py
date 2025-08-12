@@ -4,6 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from backend.db.session import get_db
 from backend.models import Challenge, Submission
@@ -88,11 +89,21 @@ async def submit_flag(challenge_id: int, body: FlagSubmit, db: Session = Depends
         await broadcast_challenges_stats_update(db)
         return {"success": True, "message": "Correct flag", "awarded": awarded}
 
-    db.add(Submission(
-        user_id=user.id,
-        challenge_id=challenge_id,
-        is_correct=False,
-        submitted_flag_preview=submitted[:32],
-    ))
+    # Wrong answer: update existing wrong attempt to avoid unique constraint, else create first wrong
+    wrong = db.query(Submission).filter(
+        Submission.user_id == user.id,
+        Submission.challenge_id == challenge_id,
+        Submission.is_correct.is_(False),
+    ).first()
+    if wrong:
+        wrong.submitted_flag_preview = submitted[:32]
+        wrong.submitted_at = func.now()
+    else:
+        db.add(Submission(
+            user_id=user.id,
+            challenge_id=challenge_id,
+            is_correct=False,
+            submitted_flag_preview=submitted[:32],
+        ))
     db.commit()
     return {"success": False, "message": "Incorrect flag"} 

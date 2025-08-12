@@ -1,5 +1,5 @@
 // App.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef} from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Chart from "react-apexcharts";
 import axios from "axios";
@@ -141,6 +141,71 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+
+function toWsUrl(path) {
+  try {
+    const u = new URL(API_BASE);
+    u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
+    u.pathname = path.startsWith("/") ? path : `/${path}`;
+    return u.toString();
+  } catch {
+    // API_BASE가 그냥 문자열일 때의 안전망
+    return API_BASE.replace(/^http/, "ws") + (path.startsWith("/") ? path : `/${path}`);
+  }
+}
+
+
+function useScoreboardWS() {
+  const [rows, setRows] = useState([]);
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    let ws;
+    let reconnectTimer;
+
+    function connect() {
+      ws = new WebSocket(toWsUrl("/ws/scoreboard"));
+
+      ws.onopen = () => {
+        setConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "scoreboard_snapshot" || msg.type === "scoreboard_update") {
+            if (Array.isArray(msg.data)) {
+              setRows([...msg.data].sort((a, b) => b.score - a.score));
+            }
+          }
+        } catch (e) {
+          console.error("WS parse error:", e);
+        }
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        reconnectTimer = setTimeout(connect, 2000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, []);
+
+  return { rows, connected };
+}
+
+
+
 function parseJwt(t) {
   try {
     const b = t.split(".")[1];
@@ -156,6 +221,10 @@ function parseJwt(t) {
     return null;
   }
 }
+
+
+
+
 
 function isAuthed() {
   return !!localStorage.getItem("token");
@@ -393,25 +462,12 @@ function Register() {
 
 function Scoreboard() {
   const isMobile = useIsMobile();
-  const [rows, setRows] = useState([]);
+  const { rows, connected } = useScoreboardWS(); // ✅ WS 훅 사용
+
   const [names, scores] = useMemo(
     () => [rows.map((r) => r.username), rows.map((r) => r.score)],
     [rows]
   );
-
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      try {
-        const { data } = await api.get("/scoreboard");
-        const sorted = Array.isArray(data) ? [...data].sort((a, b) => b.score - a.score) : [];
-        if (alive) setRows(sorted);
-      } catch {}
-    };
-    tick();
-    const id = setInterval(tick, 3000);
-    return () => { alive = false; clearInterval(id); };
-  }, []);
 
   const options = {
     chart: { id: "scoreboard", parentHeightOffset: 0 },
@@ -431,12 +487,16 @@ function Scoreboard() {
 
   return (
     <div style={{ color: "#fff", textAlign: "center", padding: 20 }}>
-      
       <pre className="scoreboard-header" style={{ display: "flex", justifyContent: "center" }}>
         <span className="rainbow scoreboard-ascii" style={{ whiteSpace: "pre" }}>
           {isMobile ? _scoreboard_mobile : _scoreboard}
         </span>
       </pre>
+
+      {/* 연결 상태 표시 */}
+      <div style={{ marginBottom: 10, fontSize: 12, color: connected ? "#4CAF50" : "#f44336" }}>
+        {connected ? "● LIVE" : "● Reconnecting..."}
+      </div>
 
       <div className="scoreboard-wrap" style={{marginBottom: 30}}>
         <h1 style={{color: "#FFD700", fontSize: "24px", margin: "10px 0"}}>
@@ -450,7 +510,6 @@ function Scoreboard() {
         </h1>
       </div>
 
-      {/* 4등 이후 전체 순위 표시 */}
       {rows.length > 3 && (
         <div style={{marginBottom: 30}}>
           <h3 style={{color: "#888", marginBottom: 15}}>전체 순위</h3>
@@ -490,7 +549,7 @@ function Scoreboard() {
             options={options}
             series={series}
             type="bar"
-            width="100%"               // 컨테이너 기준 100%
+            width="100%"
             height={isMobile ? 280 : 480}
           />
         </div>
@@ -1181,6 +1240,8 @@ function NotFound() {
     </div>
   );
 }
+
+
 
 export default function App() {
   return (
