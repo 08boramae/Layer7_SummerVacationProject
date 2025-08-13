@@ -599,10 +599,21 @@ function Scoreboard() {
 
   // 응원 인덱스 (id, username 둘 다 매칭 지원)
   const cheerById = React.useMemo(() => {
-    const m = new Map();
-    cheerRows.forEach(r => { if (r.id != null) m.set(String(r.id), r.cheers); });
-    return m;
-  }, [cheerRows]);
+   const m = new Map();
+   for (const r of cheerRows) {
+     const uname = (r.username || r.user_name || "").toLowerCase();
+     // cheerRows에 id가 없더라도 /users 인덱스로 보완해서 id 확정
+     const id =
+       r.id ??
+       r.user_id ??
+       usersIndex.get(uname);      // ← /users 인덱스 사용
+     if (id != null) {
+       const cnt = Number(r.cheers ?? r.count ?? 0);
+       m.set(String(id), cnt);
+     }
+   }
+   return m;
+ }, [cheerRows, usersIndex]);
 
   const idByUsername = React.useMemo(() => {
    // 우선순위: cheerRows(id가 있는 경우) → /users 인덱스(백업)
