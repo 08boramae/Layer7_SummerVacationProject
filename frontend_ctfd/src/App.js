@@ -514,6 +514,30 @@ function Login() {
   );
 }
 
+function usePublicUsersIndex() {
+  const [idx, setIdx] = React.useState(new Map());
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/users"); // ← 네가 준 FastAPI 라우트
+        if (!alive) return;
+        const m = new Map();
+        (Array.isArray(data) ? data : []).forEach(u => {
+          const uname = (u.username || "").toLowerCase();
+          if (uname) m.set(uname, u.id);
+        });
+        setIdx(m);
+      } catch {
+        setIdx(new Map());
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+  return idx; // Map<lower_username, id>
+}
+
+
 function Register() {
   const isMobile = useIsMobile();
   async function handleRegister(e) {
@@ -571,6 +595,7 @@ function Scoreboard() {
   const isMobile = useIsMobile();
   const { rows, connected } = useScoreboardWS();       // 기존 스코어 WS 그대로
   const { rows: cheerRows } = useCheerboardWS();       // 👈 응원판 WS 추가 (표시에만 사용)
+  const usersIndex = usePublicUsersIndex(); 
 
   // 응원 인덱스 (id, username 둘 다 매칭 지원)
   const cheerById = React.useMemo(() => {
@@ -580,10 +605,18 @@ function Scoreboard() {
   }, [cheerRows]);
 
   const idByUsername = React.useMemo(() => {
-    const m = new Map();
-    cheerRows.forEach(r => m.set((r.username||"").toLowerCase(), r.id));
-    return m;
-  }, [cheerRows]);
+   // 우선순위: cheerRows(id가 있는 경우) → /users 인덱스(백업)
+   const m = new Map();
+   cheerRows.forEach(r => {
+     const uname = (r.username || "").toLowerCase();
+     if (uname && r.id != null) m.set(uname, r.id);
+   });
+   // cheerRows에 id가 없던 사용자 채우기
+   usersIndex.forEach((id, uname) => {
+     if (!m.has(uname)) m.set(uname, id);
+   });
+   return m;
+ }, [cheerRows, usersIndex]);
 
   const getCheerInfo = React.useCallback((user) => {
     const uname = (user?.username || "").toLowerCase();
@@ -601,6 +634,8 @@ function Scoreboard() {
   if (!isAuthed()) return alert("로그인이 필요합니다");
 
   // 여기서 반드시 타겟 ID를 해석
+  console.log("Test");
+  console.log(user);
   const targetId = await resolveCheerTargetId(user, idByUsername);
   if (!targetId) return alert("이 사용자의 ID를 확인할 수 없습니다");
 
@@ -680,6 +715,7 @@ function Scoreboard() {
           }}>
             {rows.map((user, index) => {
               const info = getCheerInfo(user);
+              console.log(info);
               return (
                 <div key={user.username || index} style={{
                   padding: "10px 15px",
@@ -698,7 +734,6 @@ function Scoreboard() {
                     <span style={{color: "#4CAF50", fontWeight: "bold"}}>{user.score}점</span>
                     <span style={{color: "#FFD700"}}>💖 {info.count}</span>
                     <button
-                      
                       onClick={() => handleCheer(user)}
                       style={{
                         ...buttonStyles,
@@ -848,7 +883,11 @@ function ChallengeCard({ ch }) {
 
   async function handleSubmitFlag(e) {
     e.preventDefault();
-    const flag = e.currentTarget.flag.value.trim();
+    const form = e.currentTarget;
+    const flagInput = form.flag;
+    console.log(flagInput);
+    const flag = (flagInput?.value || "").trim();
+    console.log(flag);
     if (!flag) {
       setMsg("플래그를 입력해주세요");
       return;
@@ -891,7 +930,7 @@ function ChallengeCard({ ch }) {
 
       setLastSubmission({ challengeId, flag });
 
-      if (data?.success) e.currentTarget.flag.value = "";
+      if (data?.success && flagInput) flagInput.value = "";
     } catch (err) {
     const s = err?.response?.status;
     const errMsg = err?.response?.data?.detail || err?.message || "";
