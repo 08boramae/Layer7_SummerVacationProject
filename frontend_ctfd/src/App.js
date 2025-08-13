@@ -974,43 +974,61 @@ function ChallengeCard({ ch }) {
 
 
   async function handleDownload() {
-    let challengeId = null;
-    
-    if (ch.id) {
-      challengeId = ch.id;
-    } else {
-      try {
-        const { data: allChallenges } = await api.get("/admin/challenges");
-        const matchedChallenge = allChallenges.find(c => c.title === ch.title);
-        if (matchedChallenge) {
-          challengeId = matchedChallenge.id;
-        }
-      } catch {
-        alert("Challenge ID를 찾을 수 없습니다");
-        return;
-      }
-    }
-
-    if (!challengeId) {
+    let challengeId = ch?.id;
+  if (!challengeId) {
+    try {
+      const { data: allChallenges } = await api.get("/admin/challenges");
+      const matched = allChallenges.find(c => c.title === ch.title);
+      if (matched) challengeId = matched.id;
+    } catch {
       alert("Challenge ID를 찾을 수 없습니다");
       return;
     }
-
-    try {
-      const res = await api.get(`/challenges/${challengeId}/download`, { responseType: "blob" });
-      const blob = new Blob([res.data]);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = (ch.title || "challenge") + ".bin";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch {
-      alert("다운로드 실패 (로그인 필요하거나 파일 없음)");
-    }
   }
+  if (!challengeId) return alert("Challenge ID를 찾을 수 없습니다");
+
+  try {
+    const res = await api.get(`/challenges/${challengeId}/download`, { responseType: "blob" });
+
+    // ✅ Content-Type 으로 확장자 추론 (CORS 노출 필요 없음: content-type은 안전헤더)
+    const ct = (res.headers?.["content-type"] || res.data?.type || "").toLowerCase();
+
+    const ext =
+      ct.includes("zip") ? ".zip" :
+      ct.includes("7z") ? ".7z" :
+      ct.includes("x-tar") || ct.includes("tar") ? ".tar" :
+      ct.includes("gzip") ? ".gz" :
+      ct.includes("x-xz") || ct.includes("xz") ? ".xz" :
+      ct.includes("rar") ? ".rar" :
+      ct.includes("pdf") ? ".pdf" :
+      ct.includes("png") ? ".png" :
+      (ct.includes("jpeg") || ct.includes("jpg")) ? ".jpg" :
+      ct.includes("gif") ? ".gif" :
+      ct.includes("svg") ? ".svg" :
+      ct.includes("plain") ? ".txt" :
+      ct.includes("json") ? ".json" :
+      ct.includes("xml") ? ".xml" :
+      ct.includes("octet-stream") ? "" : // 모르면 확장자 강제 X
+      "";
+
+    // 기본 파일명: 제목 + (확장자 없으면 추론 확장자)
+    // 이미 제목에 확장자가 있으면 그대로 사용
+    const hasDot = /\.[A-Za-z0-9]{1,8}$/.test(ch.title || "");
+    const filename = (ch.title || "challenge") + (hasDot ? "" : ext);
+
+    const blob = new Blob([res.data], { type: ct || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename; // 👈 여기서 원하는 확장자 강제
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert("다운로드 실패 (로그인 필요하거나 파일 없음)");
+  }
+}
 
   return (
     <div style={{ 
